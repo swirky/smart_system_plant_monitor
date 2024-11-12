@@ -1,18 +1,23 @@
 import time
+import os
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
+#from sensors.light_sensor import LightSensor
+
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@localhost/monitor_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
 db = SQLAlchemy(app)
-simulated_light_sensor = SimulatedLightSensor()
 
-last_sensor_data = None  # Zmienna globalna do przechowywania ostatnich danych z czujnika
+simulatedObj = SimulatedLightSensor("BH1750")
+#lightsensorObj = LightSensor("BH1750")
+
+last_sensor_data = None  #Zmienna globalna do przechowywania ostatnich danych z czujnika
 
 # Model dla danych z czujnika
 class MonitorDatabase(db.Model):
@@ -45,7 +50,7 @@ def collect_sensor_data():
                 socketio.sleep(time_to_wait)
 
                 # Zczytywanie danych i aktualizacja zmiennej globalnej
-                data = simulated_light_sensor.read()
+                data = simulatedObj.read()
                 last_sensor_data = data
                 save_sensor_data(data)
                 socketio.emit('sensor_data', last_sensor_data)  # Emitowanie danych do klientów
@@ -70,6 +75,7 @@ def on_connect():
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
 
 if __name__ == '__main__':
-    # Uruchamiamy zadanie zbierania danych przy starcie serwera
+    #if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        # Uruchamiamy zadania w tle tylko w głównym procesie
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.run(app, debug=False)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
