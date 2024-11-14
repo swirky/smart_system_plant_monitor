@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Przeciągane Bloczków</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Twój własny plik CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row" id="sortable-grid">
+            <!-- Bloczek 1 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 1</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+
+            <!-- Bloczek 2 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 2</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+
+            <!-- Bloczek 3 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 3</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+
+            <!-- Dodaj więcej bloczków zgodnie z potrzebami -->
+        </div>
+    </div>
+
+    <!-- SortableJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        // Inicjalizacja SortableJS na elemencie o id "sortable-grid"
+        document.addEventListener("DOMContentLoaded", function() {
+            const grid = document.getElementById('sortable-grid');
+            Sortable.create(grid, {
+                animation: 150, // Czas trwania animacji
+                ghostClass: 'sortable-ghost' // Klasa dodana do przeciąganego elementu
+            });
+        });
+    </script>
+</body>
+</html>

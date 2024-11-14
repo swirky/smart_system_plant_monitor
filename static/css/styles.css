@@ -1,0 +1,52 @@
+body{
+    background-color: #f8f9fa;
+}
+
+
+/* Podstawowe stylowanie bloczków (sensor-card) */
+.sensor-card {
+    background-color: #f8f9fa; /* Kolor tła bloczka, możesz zmienić na dowolny inny */
+    color: #333; /* Kolor tekstu wewnątrz bloczka */
+    padding: 20px; /* Dodatkowy odstęp wewnątrz bloczka */
+    border-radius: 15px; /* Zaokrąglenie rogów bloczka */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Dodanie delikatnego cienia */
+    transition: transform 0.2s, box-shadow 0.2s; /* Animacja przy najechaniu */
+    width: 100%; /* Ustawienie pełnej szerokości dla responsywności */
+}
+
+/* Efekt najechania na bloczek */
+.sensor-card:hover {
+    transform: scale(1.05); /* Powiększenie bloczka przy najechaniu */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Intensywniejszy cień */
+}
+
+/* Kolorystyka dla różnych typów czujników */
+.bg-temperature {
+    background-color: #ffcccc; /* Czerwonawe tło dla bloczka temperatury */
+}
+
+.bg-humidity {
+    background-color: #ccffcc; /* Zielonkawe tło dla bloczka wilgotności */
+}
+
+.bg-light {
+    background-color: #fff4cc; /* Żółtawe tło dla bloczka natężenia światła */
+}
+
+/* Tekst wyśrodkowany i duży */
+.sensor-card h4 {
+    font-size: 1.25rem;
+    margin-bottom: 10px;
+}
+
+.sensor-card p{
+    font-size: 1.5rem; /* Większy rozmiar tekstu dla wartości */
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+/* Stylizacja ikon wewnątrz bloczka */
+.icon-large {
+    font-size: 2.5rem; /* Rozmiar ikony */
+    margin-bottom: 10px;
+}

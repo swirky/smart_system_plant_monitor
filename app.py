@@ -60,8 +60,12 @@ def collect_sensor_data():
 
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def main_panel():
+    return render_template('main_panel.html')
+
+@app.route('/test')
+def test():
+    return render_template('test.html')
 
 @app.route('/light_sensor')
 def light_sensor():
@@ -78,4 +82,4 @@ if __name__ == '__main__':
     #if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         # Uruchamiamy zadania w tle tylko w głównym procesie
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
