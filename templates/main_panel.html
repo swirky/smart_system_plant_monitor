@@ -21,7 +21,7 @@
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
                 <div class="sensor-card bg-light p-3 text-center">
                     <h4>Bloczek 2</h4>
-                    <p>Opis bloczka</p>
+                    <p id="oilTemperatureValue1">--</p>
                 </div>
             </div>
             
@@ -78,7 +78,14 @@
             const socket = io();
 
             socket.on('sensor_data', function(data) {
-                document.getElementById("LightSensorLuxValue").innerText = data.lux;
+                if (data["Light sensor 1"]) {
+                    document.getElementById("LightSensorLuxValue").innerText = data["Light Sensor 1"].lux || '--';
+                }
+                if (data["Soil Temperature Sensor 1"]) {
+                    document.getElementById("SoilTemperatureValue1").innerText = data["Soil Temperature Sensor 1"].temperature || '--';
+                }
+
+                
             });
         });
     </script>

@@ -6,9 +6,11 @@ class SimulatedSensor(ABC):
     """
     Klasa bazowa dla wszystkich symulowanych czujników
     """
-    def __init__(self, name, model):
+    def __init__(self,type, name, model, measurement_types=None):
+        self.type = type
         self.name = name
         self.model = model
+        self.measurement_types = measurement_types
         self.timestamp = None
 
     @abstractmethod

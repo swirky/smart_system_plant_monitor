@@ -10,7 +10,7 @@ class LightSensor(Sensor):
         self.model = model
         self.address = address
         i2c = board.I2C()
-        self.sensor = adafruit_bh1750.BH1750(i2c,address=address)
+        self.sensor = adafruit_bh1750.BH1750(i2c,address=self.address)
 
     def read(self):
         bus = smbus2.SMBus(1)  # Uruchomienie magistrali I2C (numer 1 dla Raspberry Pi)

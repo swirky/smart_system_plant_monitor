@@ -5,6 +5,8 @@ from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
+from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
+from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading
 #from sensors.light_sensor import LightSensor
 
 
@@ -12,31 +14,68 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
-db = SQLAlchemy(app)
+db.init_app(app)
+#----------------------------Obiekty inicjalizacja---------------------------------------------
 
-simulatedObj = SimulatedLightSensor("BH1750")
+simulatedLightSensorObject = SimulatedLightSensor("Light Sensor 1","BH1750")
+simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 #lightsensorObj = LightSensor("BH1750")
+#----------------------------------------------------------------------------------------------
+
+sensor_objects =[
+    simulatedLightSensorObject,
+    simulatedSoilTemperatureSensorObject,
+    simulatedSoilTemperatureSensorObject2
+]
 
 last_sensor_data = None  #Zmienna globalna do przechowywania ostatnich danych z czujnika
 
-# Model dla danych z czujnika
-class MonitorDatabase(db.Model):
-    __tablename__ = 'light_sensor'
-    id = db.Column(db.Integer, primary_key=True)
-    model = db.Column(db.String(50))
-    lux = db.Column(db.Float)
-    timestamp = db.Column(db.String(50))
-
-# Funkcja do zapisywania danych w bazie
-def save_sensor_data(data):
-    try:
-        new_data = MonitorDatabase(model=data['model'], lux=data['lux'], timestamp=data['timestamp'])
-        db.session.add(new_data)
+def add_sensor_or_sensor_type_if_not_exists(sensor_object):
+    sensor_type = SensorType.query.filter_by(name=sensor_object.type).first()
+    if not sensor_type:
+        sensor_type = SensorType(name=sensor_object.type)
+        db.session.add(sensor_type)
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error saving data to the database: {e}")
-        
+        print("Sensor type added")
+    sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
+    if not sensor:
+        sensor = Sensor(name=sensor_object.name, model=sensor_object.model, type_id=sensor_type.id)
+        db.session.add(sensor)
+        db.session.commit()
+        print("Sensor added")
+    
+     # Dodanie możliwości pomiarowych dla czujnika
+    for measurement_name in sensor_object.measurement_types:
+        # Znajdź lub dodaj typ pomiaru
+        measurement_type = MeasurementType.query.filter_by(name=measurement_name).first()
+        if not measurement_type:
+            measurement_type = MeasurementType(name=measurement_name)
+            db.session.add(measurement_type)
+            db.session.commit()
+
+        # Dodaj powiązanie między typem czujnika a typem pomiaru
+        capability = SensorTypeCapabilities.query.filter_by(
+            sensor_type_id=sensor_type.id,
+            measurement_type_id=measurement_type.id
+        ).first()
+        if not capability:
+            capability = SensorTypeCapabilities(sensor_type_id=sensor_type.id, measurement_type_id=measurement_type.id)
+            db.session.add(capability)
+            db.session.commit()
+    return sensor
+
+
+def add_sensor_reading(sensor, reading_value):
+    reading = SensorReading(sensor_id=sensor.id, value=reading_value)
+    db.session.add(reading)
+    db.session.commit()
+
+def initialize_sensors():
+    for sensor_object in sensor_objects:
+        add_sensor_or_sensor_type_if_not_exists(sensor_object)
+
+
 # Funkcja do zczytywania danych co pełną minutę
 def collect_sensor_data():
     global last_sensor_data
@@ -49,10 +88,14 @@ def collect_sensor_data():
                 time_to_wait = (next_minute - now).total_seconds()
                 socketio.sleep(time_to_wait)
 
+
                 # Zczytywanie danych i aktualizacja zmiennej globalnej
-                data = simulatedObj.read()
+                data = simulatedLightSensorObject.read()
                 last_sensor_data = data
-                save_sensor_data(data)
+
+                sensor = add_sensor_or_sensor_type_if_not_exists(simulatedLightSensorObject)
+                add_sensor_reading(sensor, data['lux'])
+
                 socketio.emit('sensor_data', last_sensor_data)  # Emitowanie danych do klientów
                 print("Dane zapisane do bazy oraz wysłane do klienta:", data)
             except Exception as e:
@@ -78,8 +121,13 @@ def on_connect():
         socketio.emit('sensor_data', last_sensor_data)   #jednorazowe emitowanie ostatnio dostepnej wartosci z zmiennej globalnej
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
 
+
+
 if __name__ == '__main__':
     #if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         # Uruchamiamy zadania w tle tylko w głównym procesie
+    with app.app_context():
+        db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
+        initialize_sensors()  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
