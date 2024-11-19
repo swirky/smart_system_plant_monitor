@@ -18,15 +18,15 @@ db.init_app(app)
 #----------------------------Obiekty inicjalizacja---------------------------------------------
 
 simulatedLightSensorObject = SimulatedLightSensor("Light Sensor 1","BH1750")
-simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+#simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+#simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 #lightsensorObj = LightSensor("BH1750")
 #----------------------------------------------------------------------------------------------
 
 sensor_objects =[
     simulatedLightSensorObject,
-    simulatedSoilTemperatureSensorObject,
-    simulatedSoilTemperatureSensorObject2
+    #simulatedSoilTemperatureSensorObject,
+    #simulatedSoilTemperatureSensorObject2
 ]
 
 last_sensor_data = None  #Zmienna globalna do przechowywania ostatnich danych z czujnika
@@ -89,15 +89,47 @@ def collect_sensor_data():
                 socketio.sleep(time_to_wait)
 
 
-                # Zczytywanie danych i aktualizacja zmiennej globalnej
-                data = simulatedLightSensorObject.read()
-                last_sensor_data = data
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                last_sensor_data = {}
 
-                sensor = add_sensor_or_sensor_type_if_not_exists(simulatedLightSensorObject)
-                add_sensor_reading(sensor, data['lux'])
+                for sensor_object in sensor_objects:
+                    data = sensor_object.read()
+                    #szuka czujnika w bazie
+                    sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
+                    if not sensor:
+                            print(f"Sensor {sensor_object.name} not found in the database. Skipping.")
+                            continue
 
-                socketio.emit('sensor_data', last_sensor_data)  # Emitowanie danych do klientów
-                print("Dane zapisane do bazy oraz wysłane do klienta:", data)
+                    #zapisanie pomiarow z czujnika do tabeli
+                    for measurement_name, value in data.items():
+                        # Znajdź measurement_type_id w bazie danych
+                        measurement_type = MeasurementType.query.filter_by(name=measurement_name).first()
+                        if not measurement_type:
+                            print(f"Measurement type '{measurement_name}' not found in the database. Skipping.")
+                            continue
+
+                    # Dodaj odczyt do tabeli sensor_readings
+                        reading = SensorReading(
+                            sensor_id=sensor.id,
+                            measurement_type_id=measurement_type.id,
+                            value=value,
+                            timestamp=timestamp
+                        )
+                        db.session.add(reading)
+
+                        
+                        if sensor_object.name not in last_sensor_data:
+                            last_sensor_data[sensor_object.name] = {}
+                        last_sensor_data[sensor_object.name][measurement_name] = value
+
+                #zatwierdzenie zapisow w bazie
+                db.session.commit()
+
+                # Wyślij dane do frontendu
+                socketio.emit('sensor_data', last_sensor_data)
+                print("Dane zapisane do bazy oraz wysłane do klienta:", last_sensor_data)
+
+
             except Exception as e:
                 print(f"Error during data collection: {e}")
 

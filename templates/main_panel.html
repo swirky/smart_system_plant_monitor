@@ -12,7 +12,7 @@
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
                 <div class="sensor-card bg-light p-3 text-center">
                     <h4>Natężenie światła</h4>
-                    <p id="LightSensorLuxValue">--</p>
+                    <p id="Light_Sensor_1_light_intensity">--</p>
                     
                 </div>
             </div>
@@ -72,21 +72,26 @@
         });
     </script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const socket = io();
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const socket = io();
 
-            socket.on('sensor_data', function(data) {
-                if (data["Light sensor 1"]) {
-                    document.getElementById("LightSensorLuxValue").innerText = data["Light Sensor 1"].lux || '--';
+        // Nasłuchiwanie na dane z backendu
+        socket.on('sensor_data', function(data) {
+            // Iteracja przez wszystkie czujniki
+            for (const [sensorName, measurements] of Object.entries(data)) {
+                // Iteracja przez typy pomiarów w danym czujniku
+                for (const [measurementType, value] of Object.entries(measurements)) {
+                    // Tworzenie dynamicznego ID elementu na podstawie nazwy czujnika i typu pomiaru
+                    const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerText = value; // Aktualizacja wartości w odpowiednim elemencie
+                    }
                 }
-                if (data["Soil Temperature Sensor 1"]) {
-                    document.getElementById("SoilTemperatureValue1").innerText = data["Soil Temperature Sensor 1"].temperature || '--';
-                }
-
-                
-            });
+            }
         });
-    </script>
+    });
+</script>
 {% endblock %}
