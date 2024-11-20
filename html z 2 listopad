@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{%block title%} Panel główny {%endblock%}
+
+{% block content %}
+    <h1>Panel główny</h1>
+    <p>Inteligentny System Monitorowania Roślin</p>
+    
+    <div class="container mt-5">
+        <div class="row" id="sortable-grid">
+            <!-- Bloczek 1 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Natężenie światła</h4>
+                    <p id="Light_Sensor_1_light_intensity">--</p>
+                    
+                </div>
+            </div>
+            
+            <!-- Bloczek 2 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Temperatura gleby - czujnik 1</h4>
+                    <p id="Soil_Temperature_Sensor_1_soil_temperature">--</p>
+                </div>
+            </div>
+            
+            <!-- Bloczek 3 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Temperatura gleby - czujnik 2</h4>
+                    <p id="Soil_Temperature_Sensor_2_soil_temperature">--</p>
+                </div>
+            </div>
+            
+            <!-- Bloczek 4 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 4</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+            
+            <!-- Bloczek 5 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 5</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+            
+            <!-- Bloczek 6 -->
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
+                <div class="sensor-card bg-light p-3 text-center">
+                    <h4>Bloczek 6</h4>
+                    <p>Opis bloczka</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SortableJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        // Inicjalizacja SortableJS na elemencie o id "sortable-grid"
+        document.addEventListener("DOMContentLoaded", function() {
+            const grid = document.getElementById('sortable-grid');
+            Sortable.create(grid, {
+                animation: 150, // Czas trwania animacji
+                ghostClass: 'sortable-ghost' // Klasa dodana do przeciąganego elementu
+            });
+        });
+    </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const socket = io();
+
+        // Nasłuchiwanie na dane z backendu
+        socket.on('sensor_data', function(data) {
+            // Iteracja przez wszystkie czujniki
+            for (const [sensorName, measurements] of Object.entries(data)) {
+                // Iteracja przez typy pomiarów w danym czujniku
+                for (const [measurementType, value] of Object.entries(measurements)) {
+                    // Tworzenie dynamicznego ID elementu na podstawie nazwy czujnika i typu pomiaru
+                    const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerText = value; // Aktualizacja wartości w odpowiednim elemencie
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
