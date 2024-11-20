@@ -11,22 +11,23 @@ from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Se
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 #----------------------------Obiekty inicjalizacja---------------------------------------------
 
 simulatedLightSensorObject = SimulatedLightSensor("Light Sensor 1","BH1750")
-#simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-#simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 #lightsensorObj = LightSensor("BH1750")
 #----------------------------------------------------------------------------------------------
 
 sensor_objects =[
     simulatedLightSensorObject,
-    #simulatedSoilTemperatureSensorObject,
-    #simulatedSoilTemperatureSensorObject2
+    simulatedSoilTemperatureSensorObject,
+    simulatedSoilTemperatureSensorObject2
 ]
 
 last_sensor_data = None  #Zmienna globalna do przechowywania ostatnich danych z czujnika
@@ -96,17 +97,11 @@ def collect_sensor_data():
                     data = sensor_object.read()
                     #szuka czujnika w bazie
                     sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
-                    if not sensor:
-                            print(f"Sensor {sensor_object.name} not found in the database. Skipping.")
-                            continue
-
+                    
                     #zapisanie pomiarow z czujnika do tabeli
                     for measurement_name, value in data.items():
                         # Znajdź measurement_type_id w bazie danych
                         measurement_type = MeasurementType.query.filter_by(name=measurement_name).first()
-                        if not measurement_type:
-                            print(f"Measurement type '{measurement_name}' not found in the database. Skipping.")
-                            continue
 
                     # Dodaj odczyt do tabeli sensor_readings
                         reading = SensorReading(

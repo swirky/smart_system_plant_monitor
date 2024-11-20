@@ -11,4 +11,4 @@ class SimulatedSoilTemperatureSensor(SimulatedSensor):
         """Symulacja odczytu temperatury gleby"""
         temperature = round(random.uniform(-10.0, 40.0), 1)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return {'model': self.model, 'temperature': temperature, 'timestamp': timestamp}
+        return {self.measurement_types[0]: temperature}
