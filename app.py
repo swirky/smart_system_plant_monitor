@@ -6,31 +6,37 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
 from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
+from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
+from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
 from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading
+
 #from sensors.light_sensor import LightSensor
 
-
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 #----------------------------Obiekty inicjalizacja---------------------------------------------
 
-simulatedLightSensorObject = SimulatedLightSensor("Light Sensor 1","BH1750")
-simulatedSoilTemperatureSensorObject = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-simulatedSoilTemperatureSensorObject2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
+simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
+simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Moisture Sensor 1","STEMMA Adafruit")
 #lightsensorObj = LightSensor("BH1750")
 #----------------------------------------------------------------------------------------------
 
 sensor_objects =[
-    simulatedLightSensorObject,
-    simulatedSoilTemperatureSensorObject,
-    simulatedSoilTemperatureSensorObject2
+    simulated_light_sensor_object,
+    simulated_soil_temperature_sensor,
+    simulated_soil_temperature_sensor2,
+    simulated_air_temperature_humidity_sensor,
+    simulated_soil_humidity_sensor
 ]
 
-last_sensor_data = None  #Zmienna globalna do przechowywania ostatnich danych z czujnika
+last_sensor_data = None 
 
 def add_sensor_or_sensor_type_if_not_exists(sensor_object):
     sensor_type = SensorType.query.filter_by(name=sensor_object.type).first()
@@ -89,41 +95,37 @@ def collect_sensor_data():
                 time_to_wait = (next_minute - now).total_seconds()
                 socketio.sleep(time_to_wait)
 
-
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 last_sensor_data = {}
 
                 for sensor_object in sensor_objects:
                     data = sensor_object.read()
-                    #szuka czujnika w bazie
-                    sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
                     
-                    #zapisanie pomiarow z czujnika do tabeli
-                    for measurement_name, value in data.items():
-                        # Znajdź measurement_type_id w bazie danych
-                        measurement_type = MeasurementType.query.filter_by(name=measurement_name).first()
+                    if sensor_object.name not in last_sensor_data:
+                        last_sensor_data[sensor_object.name] = {}
+                    for measurement_type_name, value in data.items():
+                        last_sensor_data[sensor_object.name][measurement_type_name] = value
 
-                    # Dodaj odczyt do tabeli sensor_readings
+                socketio.emit('sensor_data', last_sensor_data)
+                print("Dane zapisane do bazy oraz wysłane do klienta:", last_sensor_data)
+
+
+                for sensor_name, measurements in last_sensor_data.items():
+                    #szuka czujnika w bazie
+                    sensor = Sensor.query.filter_by(name=sensor_name).first()   
+                    for measurement_type_name, value in measurements.items():
+                        measurement_type = MeasurementType.query.filter_by(name=measurement_type_name).first()
+
+                        # Dodaj odczyt do tabeli sensor_readings
                         reading = SensorReading(
                             sensor_id=sensor.id,
                             measurement_type_id=measurement_type.id,
                             value=value,
                             timestamp=timestamp
                         )
-                        db.session.add(reading)
-
-                        
-                        if sensor_object.name not in last_sensor_data:
-                            last_sensor_data[sensor_object.name] = {}
-                        last_sensor_data[sensor_object.name][measurement_name] = value
-
+                        db.session.add(reading)       
                 #zatwierdzenie zapisow w bazie
                 db.session.commit()
-
-                # Wyślij dane do frontendu
-                socketio.emit('sensor_data', last_sensor_data)
-                print("Dane zapisane do bazy oraz wysłane do klienta:", last_sensor_data)
-
 
             except Exception as e:
                 print(f"Error during data collection: {e}")

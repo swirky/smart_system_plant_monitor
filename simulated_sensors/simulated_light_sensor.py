@@ -1,5 +1,4 @@
-import random, time
-from datetime import datetime
+import random
 from simulated_sensors.simulated_sensor_base import SimulatedSensor
 
 class SimulatedLightSensor(SimulatedSensor):
