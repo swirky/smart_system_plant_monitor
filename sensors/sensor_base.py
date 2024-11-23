@@ -1,4 +1,3 @@
-# sensor_base.py
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -6,9 +5,11 @@ class Sensor(ABC):
     """
     Klasa bazowa dla wszystkich czujników
     """
-    def __init__(self, name, model):
+    def __init__(self,type, name, model, measurement_types=[]):
+        self.type = type
         self.name = name
         self.model = model
+        self.measurement_types = measurement_types
         self.timestamp = None
 
     @abstractmethod

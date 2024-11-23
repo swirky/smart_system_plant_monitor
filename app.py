@@ -8,8 +8,8 @@ from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTem
 from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
 from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
 from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading
-
-#from sensors.light_sensor import LightSensor
+#import real sensors
+from sensors.light_sensor import LightSensor
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
@@ -24,15 +24,19 @@ simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Tempera
 simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
 simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
-#lightsensorObj = LightSensor("BH1750")
+
+#real sensors
+light_sensor_object = LightSensor("Light Sensor 1", "BH1750")
+
 #----------------------------------------------------------------------------------------------
 
 sensor_objects =[
-    simulated_light_sensor_object,
-    simulated_soil_temperature_sensor,
-    simulated_soil_temperature_sensor2,
-    simulated_air_temperature_humidity_sensor,
-    simulated_soil_humidity_sensor
+    #simulated_light_sensor_object,
+    #simulated_soil_temperature_sensor,
+    #simulated_soil_temperature_sensor2,
+    #simulated_air_temperature_humidity_sensor,
+    #simulated_soil_humidity_sensor
+    light_sensor_object
 ]
 
 last_sensor_data = None 

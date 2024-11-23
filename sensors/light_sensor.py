@@ -5,9 +5,8 @@ import random, time
 import smbus2
 
 class LightSensor(Sensor):
-    def __init__(self, model, address = 0x23):
-        super().__init__("Light sensor",model)
-        self.model = model
+    def __init__(self,name, model,address = 0x23):
+        super().__init__("light sensor",name,model, measurement_types=["light intensity"])
         self.address = address
         i2c = board.I2C()
         self.sensor = adafruit_bh1750.BH1750(i2c,address=self.address)
@@ -18,7 +17,7 @@ class LightSensor(Sensor):
         data = bus.read_i2c_block_data(self.address, 0x10, 2)  # Odczyt 2 bajtów danych
         light_level = (data[0] << 8) | data[1]  # Złożenie dwóch bajtów w jedną wartość
         light_level = round(light_level / 1.2, 1)  # Przeliczenie na luks (1.2 to przelicznik dla BH1750) i zaokroglenie do 1 miejsca po przecinku
-        return {'model': self.model, 'lux': light_level, 'timestamp': self.get_current_timestamp()}
+        return {self.measurement_types[0]:light_level}
 
 
     
