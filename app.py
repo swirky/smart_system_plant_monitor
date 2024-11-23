@@ -24,7 +24,7 @@ simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
 simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
 simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
-simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Moisture Sensor 1","STEMMA Adafruit")
+simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
 #lightsensorObj = LightSensor("BH1750")
 #----------------------------------------------------------------------------------------------
 
@@ -135,13 +135,9 @@ def collect_sensor_data():
 def main_panel():
     return render_template('main_panel.html')
 
-@app.route('/test')
-def test():
-    return render_template('test.html')
-
-@app.route('/light_sensor')
-def light_sensor():
-    return render_template('light_sensor.html')
+@app.route('/historic_data_charts')
+def historic_data_charts():
+    return render_template('historic_data_charts.html')
 
 @socketio.on('connect')
 def on_connect():
@@ -153,10 +149,8 @@ def on_connect():
 
 
 if __name__ == '__main__':
-    #if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        # Uruchamiamy zadania w tle tylko w głównym procesie
     with app.app_context():
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         initialize_sensors()  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
