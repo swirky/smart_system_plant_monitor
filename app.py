@@ -2,7 +2,6 @@ import time
 import os
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
 from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
@@ -109,7 +108,6 @@ def collect_sensor_data():
                 socketio.emit('sensor_data', last_sensor_data)
                 print("Dane zapisane do bazy oraz wysłane do klienta:", last_sensor_data)
 
-
                 for sensor_name, measurements in last_sensor_data.items():
                     #szuka czujnika w bazie
                     sensor = Sensor.query.filter_by(name=sensor_name).first()   
@@ -146,11 +144,9 @@ def on_connect():
         socketio.emit('sensor_data', last_sensor_data)   #jednorazowe emitowanie ostatnio dostepnej wartosci z zmiennej globalnej
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
 
-
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         initialize_sensors()  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
