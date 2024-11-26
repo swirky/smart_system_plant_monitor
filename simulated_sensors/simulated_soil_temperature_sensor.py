@@ -1,5 +1,4 @@
-import random, time
-from datetime import datetime
+import random
 from simulated_sensors.simulated_sensor_base import SimulatedSensor
 
 class SimulatedSoilTemperatureSensor(SimulatedSensor):
@@ -10,5 +9,4 @@ class SimulatedSoilTemperatureSensor(SimulatedSensor):
     def read(self):
         """Symulacja odczytu temperatury gleby"""
         temperature = round(random.uniform(-10.0, 40.0), 1)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return {self.measurement_types[0]: temperature}

@@ -33,16 +33,24 @@ body{
     background-color: #fff4cc; /* Żółtawe tło dla bloczka natężenia światła */
 }
 
-/* Tekst wyśrodkowany i duży */
 .sensor-card h4 {
     font-size: 1.25rem;
     margin-bottom: 10px;
 }
 
 .sensor-card p{
-    font-size: 1.5rem; /* Większy rozmiar tekstu dla wartości */
+     display: inline;
+    font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 0;
+}
+
+/*Span dla jednostek pomiarów w main_panel.html*/
+.sensor-card span {
+    display: inline;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-left: 5px;
 }
 
 /* Stylizacja ikon wewnątrz bloczka */

@@ -1,5 +1,5 @@
 from sensors.sensor_base import Sensor
-import adafruit_bh1750      
+import adafruit_bh1750
 import board
 import random, time
 import smbus2

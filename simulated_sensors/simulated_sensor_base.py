@@ -1,3 +1,4 @@
+# sensor_base.py
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -18,10 +19,3 @@ class SimulatedSensor(ABC):
         Metoda abstrakcyjna do odczytu danych z czujnika
         """
         pass
-
-    def get_current_timestamp(self):
-        """
-        Zwraca aktualny znacznik czasu
-        """
-        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return self.timestamp

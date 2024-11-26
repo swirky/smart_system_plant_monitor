@@ -1,10 +1,6 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 class Sensor(ABC):
-    """
-    Klasa bazowa dla wszystkich czujników
-    """
     def __init__(self,type, name, model, measurement_types=[]):
         self.type = type
         self.name = name
@@ -14,14 +10,6 @@ class Sensor(ABC):
 
     @abstractmethod
     def read(self):
-        """
-        Metoda abstrakcyjna do odczytu danych z czujnika
-        """
         pass
 
-    def get_current_timestamp(self):
-        """
-        Zwraca aktualny znacznik czasu
-        """
-        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return self.timestamp
+
