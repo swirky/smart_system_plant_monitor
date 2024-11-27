@@ -1,12 +1,13 @@
-# sensor_base.py
 from abc import ABC, abstractmethod
 from datetime import datetime
+
 
 class SimulatedSensor(ABC):
     """
     Klasa bazowa dla wszystkich symulowanych czujników
     """
-    def __init__(self,type, name, model, measurement_types=[]):
+
+    def __init__(self, type, name, model, measurement_types=[]):
         self.type = type
         self.name = name
         self.model = model
