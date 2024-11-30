@@ -1,6 +1,6 @@
+import board
 from sensors.sensor_base import Sensor
 from adafruit_seesaw.seesaw import Seesaw
-import board
 
 class SoilHumiditySensor(Sensor):
     def __init__(self,name,model,address=None):
