@@ -61,24 +61,31 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const socket = io();
+        document.addEventListener("DOMContentLoaded", function() {
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('/api/sensor_data');
+                if (!response.ok) throw new Error("Błąd pobierania danych z serwera");
+                const data = await response.json();
 
-        // Nasłuchiwanie na dane z backendu
-        socket.on('sensor_data', function(data) {
-            // Iteracja przez wszystkie czujniki
-            for (const [sensorName, measurements] of Object.entries(data)) {
-                // Iteracja przez typy pomiarów w danym czujniku
-                for (const [measurementType, value] of Object.entries(measurements)) {
-                    // Tworzenie dynamicznego ID elementu na podstawie nazwy czujnika i typu pomiaru
-                    const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                        element.innerText = value; // Aktualizacja wartości w odpowiednim elemencie
+                // Iteracja przez wszystkie czujniki
+                for (const [sensorName, measurements] of Object.entries(data)) {
+                    for (const [measurementType, value] of Object.entries(measurements)) {
+                        const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            element.innerText = value; // Aktualizacja wartości
+                        }
                     }
                 }
+            } catch (error) {
+                console.error("Błąd podczas pobierania danych:", error);
             }
-        });
+        }
+
+        // Odświeżaj dane co 10 sekund
+        setInterval(fetchSensorData, 10000);
+        fetchSensorData();
     });
 </script>
 {% endblock %}
