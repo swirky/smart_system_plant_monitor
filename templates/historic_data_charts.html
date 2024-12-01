@@ -5,11 +5,62 @@
 
 
 {% block content %}
-siema
-<canvas id="myChart" width="400" height="200"></canvas>
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+
+<canvas id="chart" width="400" height="200"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('chart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],  // Etykiety osi X (np. timestampy)
+            datasets: [{
+                label: 'Wartości z czujnika',
+                data: [],  // Dane osi Y (np. wartości odczytów)
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            scales: {
+                x: { title: { display: true, text: 'Czas' }},
+                y: { title: { display: true, text: 'Wartość' }}
+            }
+        }
+    });
+</script>
+
+
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+    const eventSource = new EventSource('/chart-stream');
+
+    eventSource.onmessage = function(event) {
+        const chartData = JSON.parse(event.data);
+        console.log("Dane do wykresu:", chartData);
+
+        // Przykład aktualizacji wykresu (np. z użyciem Chart.js)
+        updateChart(chartData);
+    };
+
+    eventSource.onerror = function(error) {
+        console.error("Błąd w połączeniu SSE (chart-stream):", error);
+    };
+
+    // Funkcja do aktualizacji wykresu
+    function updateChart(data) {
+        // Przykład użycia Chart.js
+        const labels = data.map(item => item.timestamp);
+        const values = data.map(item => item.value);
+
+        myChart.data.labels = labels;
+        myChart.data.datasets[0].data = values;
+        myChart.update();
+    }
+});
+</script>
 {% endblock %}

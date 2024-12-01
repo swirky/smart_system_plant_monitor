@@ -50,8 +50,13 @@ sensor_objects = [
     # soil_humidity_sensor
 ]
 
-last_sensor_data = None
-
+last_sensor_data = {
+    "Light Sensor 1": {"light intensity": 0},
+    "Soil Temperature Sensor 1": {"soil temperature": 0},
+    "Soil Temperature Sensor 2": {"soil temperature": 0},
+    "Air Temperature and Humidity Sensor 1": {"air temperature": 0, "air humidity": 0},
+    "Soil Humidity Sensor 1": {"soil humidity": 0}
+}
 
 def add_sensor_or_sensor_type_if_not_exists(sensor_object):
     sensor_type = SensorType.query.filter_by(name=sensor_object.type).first()
@@ -127,9 +132,6 @@ def collect_sensor_data():
                     for measurement_type_name, value in data.items():
                         last_sensor_data[sensor_object.name][measurement_type_name] = value
 
-                
-                print("Dane zapisane do bazy oraz wysłane do klienta:",
-                      last_sensor_data)
 
                 for sensor_name, measurements in last_sensor_data.items():
                     # szuka czujnika w bazie
@@ -162,16 +164,53 @@ def main_panel():
 def historic_data_charts():
     return render_template('historic_data_charts.html')
 
-@app.route('/api/sensor_data', methods=['GET'])
-def get_latest_sensor_data():
-    """Endpoint do pobierania danych czujników."""
-    global last_sensor_data
-    if last_sensor_data:
-        return jsonify(last_sensor_data)
-    else:
-        return jsonify({'error': 'No data available'}), 404
 
+@app.route('/stream')
+def stream():
+    def generate():
+        with app.app_context():
+            previous_data = None  # Śledzenie poprzednich danych
+            while True:
+                try:
+                    if last_sensor_data != previous_data:  # Wysyłaj tylko, jeśli dane się zmieniły
+                        previous_data = last_sensor_data.copy()
+                        print(f"Przesyłanie danych: {last_sensor_data}")
+                        yield f"data: {jsonify(last_sensor_data).get_data(as_text=True)}\n\n"
+                    time.sleep(1)  # Krótkie odświeżanie, aby reagować szybko na zmiany
+                except Exception as e:
+                    yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+    return app.response_class(generate(), content_type='text/event-stream')
 
+@app.route('/chart-stream')
+def chart_stream():
+    def generate_chart_data():
+        with app.app_context():
+            last_timestamp = None  # Śledzenie ostatniego przesłanego punktu danych
+            while True:
+                try:
+                    # Pobierz najnowsze dane z bazy
+                    latest_data = SensorReading.query.order_by(SensorReading.timestamp.desc()).all()
+                    if latest_data:
+                        # Sprawdź, czy są nowe dane
+                        new_timestamp = latest_data[0].timestamp
+                        if new_timestamp != last_timestamp:
+                            last_timestamp = new_timestamp
+                            # Sformatuj dane w strukturę wykresu
+                            chart_data = [
+                                {
+                                    "sensor_id": reading.sensor_id,
+                                    "measurement_type_id": reading.measurement_type_id,
+                                    "value": reading.value,
+                                    "timestamp": reading.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                                } for reading in latest_data
+                            ]
+                            # Wyślij dane do klienta
+                            yield f"data: {jsonify(chart_data).get_data(as_text=True)}\n\n"
+                    time.sleep(1)  # Czekaj sekundę przed ponownym sprawdzeniem bazy
+                except Exception as e:
+                    yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+    return app.response_class(generate_chart_data(), content_type='text/event-stream')
+ 
 
 if __name__ == '__main__':
     with app.app_context():
@@ -180,3 +219,4 @@ if __name__ == '__main__':
     import threading
     threading.Thread(target=collect_sensor_data, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=False)
+

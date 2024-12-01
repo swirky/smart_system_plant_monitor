@@ -5,6 +5,10 @@
 {% block content %}
     <h1>Panel główny</h1>
     <p>Inteligentny System Monitorowania Roślin</p>
+    <div class="container mt-5">
+        <h2>Bieżąca data i czas:</h2>
+        <p id="current-time" style="font-size: 1.5rem; font-weight: bold;">--:--:--</p>
+    </div>
     
     <div class="container mt-5">
         <div class="row" id="sortable-grid">
@@ -61,31 +65,48 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
 <script>
-        document.addEventListener("DOMContentLoaded", function() {
-        async function fetchSensorData() {
-            try {
-                const response = await fetch('/api/sensor_data');
-                if (!response.ok) throw new Error("Błąd pobierania danych z serwera");
-                const data = await response.json();
+    document.addEventListener("DOMContentLoaded", function() {
+        // Połączenie z serwerem za pomocą SSE
+        const eventSource = new EventSource('/stream');
 
-                // Iteracja przez wszystkie czujniki
-                for (const [sensorName, measurements] of Object.entries(data)) {
-                    for (const [measurementType, value] of Object.entries(measurements)) {
-                        const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
-                        const element = document.getElementById(elementId);
-                        if (element) {
-                            element.innerText = value; // Aktualizacja wartości
-                        }
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data); // Parsowanie danych JSON
+            console.log(data); // Wyświetlanie danych w konsoli (tylko do debugowania)
+
+            // Iteracja przez dane czujników
+            for (const [sensorName, measurements] of Object.entries(data)) {
+                for (const [measurementType, value] of Object.entries(measurements)) {
+                    const elementId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}`;
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.innerText = value; // Aktualizacja wartości w odpowiednim elemencie
                     }
                 }
-            } catch (error) {
-                console.error("Błąd podczas pobierania danych:", error);
             }
-        }
+        };
 
-        // Odświeżaj dane co 10 sekund
-        setInterval(fetchSensorData, 10000);
-        fetchSensorData();
+        eventSource.onerror = function(error) {
+            console.error("Błąd w połączeniu SSE:", error);
+        };
+
+        function updateTime() {
+        const now = new Date();
+        const formattedTime = now.toLocaleString('pl-PL', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('current-time').innerText = formattedTime;
+    }
+
+    // Aktualizuj czas co sekundę
+    setInterval(updateTime, 1000);
+
+    // Wywołaj funkcję natychmiast
+    updateTime();
     });
 </script>
 {% endblock %}
