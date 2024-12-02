@@ -5,7 +5,12 @@
 {% block content %}
     <h1>Panel główny</h1>
     <p>Inteligentny System Monitorowania Roślin</p>
-    <div id="current-time">Ładowanie...</div>
+    <div>
+        <span>Czas na twoim urządzeniu: </span> <p id="current-time"> Ładowanie...</p>
+        <span>Czas na Raspberce: </span><p id="server-time"> Ładowanie...</p>
+    </div>
+
+    
 
     <div class="container mt-5">
         <div class="row" id="sortable-grid">
@@ -68,6 +73,8 @@
 
         const socket = io();
 
+        
+
         // Nasłuchiwanie na dane z backendu
         socket.on('sensor_data', function(data) {
             // Iteracja przez wszystkie czujniki
@@ -83,6 +90,12 @@
                 }
             }
         });
+
+        socket.on('server_time', function(data) {
+            // Aktualizacja wyświetlanej godziny na podstawie danych z serwera
+            document.getElementById('server-time').innerText = data.time;
+        });
+
         setInterval(updateTime, 1000);
         function updateTime() {
         const now = new Date();
@@ -99,6 +112,7 @@
 
     });
 </script>
+
 
 
 {% endblock %}
