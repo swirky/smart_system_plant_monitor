@@ -9,8 +9,8 @@ class SensorType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # Typ czujnika, np. 'light_sensor'
     name = db.Column(db.String(100), nullable=False)
-    sensors = db.relationship('Sensor', backref='sensor_type', lazy=True)
 
+    sensors = db.relationship('Sensor', backref='sensor_type', lazy=True)
     def __repr__(self):
         return f"<SensorType(id={self.id}, name='{self.name}')>"
 
