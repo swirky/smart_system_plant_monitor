@@ -9,10 +9,10 @@ from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTem
 from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
 from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
 # real sensor files
-from sensors.light_sensor import LightSensor
-from sensors.soil_temperature_sensor import SoilTemperatureSensor
-from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
-from sensors.soil_humidity_sensor import SoilHumiditySensor
+# from sensors.light_sensor import LightSensor
+# from sensors.soil_temperature_sensor import SoilTemperatureSensor
+# from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
+# from sensors.soil_humidity_sensor import SoilHumiditySensor
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
@@ -22,33 +22,33 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 # ----------------------------Obiekty inicjalizacja---------------------------------------------
 
-# simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
-# simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-# simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
-# simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
-# simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
-light_sensor_object = LightSensor("Light Sensor 1", "BH1750", 0x23)
-soil_temperature_sensor = SoilTemperatureSensor(
-    "Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
-soil_temperature_sensor2 = SoilTemperatureSensor(
-    "Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
-air_temperature_humidity_sensor = AirTemperatureHumiditySensor(
-    "Air Temperature and Humidity Sensor 1", "DHT11", 13)
-soil_humidity_sensor = SoilHumiditySensor(
-    "Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
+simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
+simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
+simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
+# light_sensor_object = LightSensor("Light Sensor 1", "BH1750", 0x23)
+# soil_temperature_sensor = SoilTemperatureSensor(
+#     "Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
+# soil_temperature_sensor2 = SoilTemperatureSensor(
+#     "Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
+# air_temperature_humidity_sensor = AirTemperatureHumiditySensor(
+#     "Air Temperature and Humidity Sensor 1", "DHT11", 13)
+# soil_humidity_sensor = SoilHumiditySensor(
+#     "Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
 # ----------------------------------------------------------------------------------------------
 
 sensor_objects = [
-    # simulated_light_sensor_object,
-    # simulated_soil_temperature_sensor,
-    # simulated_soil_temperature_sensor2,
-    # simulated_air_temperature_humidity_sensor,
-    # simulated_soil_humidity_sensor
-    light_sensor_object,
-    soil_temperature_sensor,
-    soil_temperature_sensor2,
-    air_temperature_humidity_sensor,
-    soil_humidity_sensor
+    simulated_light_sensor_object,
+    simulated_soil_temperature_sensor,
+    simulated_soil_temperature_sensor2,
+    simulated_air_temperature_humidity_sensor,
+    simulated_soil_humidity_sensor
+    # light_sensor_object,
+    # soil_temperature_sensor,
+    # soil_temperature_sensor2,
+    # air_temperature_humidity_sensor,
+    # soil_humidity_sensor
 ]
 
 last_sensor_data = None
@@ -103,53 +103,53 @@ def initialize_sensors():
     for sensor_object in sensor_objects:
         add_sensor_or_sensor_type_if_not_exists(sensor_object)
 
+def wait_for_next_minute():
+    now = datetime.now()
+    next_minute = (now + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    time_to_wait = (next_minute - now).total_seconds()
+    socketio.sleep(time_to_wait)
 
-# Funkcja do zczytywania danych co pełną minutę
+def read_sensor_data():
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sensor_data = {}
+
+    for sensor_object in sensor_objects:
+        data = sensor_object.read()
+        if sensor_object.name not in sensor_data:
+            sensor_data[sensor_object.name] = {}
+        for measurement_type_name, value in data.items():
+            sensor_data[sensor_object.name][measurement_type_name] = value
+    return sensor_data,timestamp
+
+def emit_sensor_data(data):
+    socketio.emit('sensor_data',data)
+    print("Dane zapisane do bazy oraz wysłane do klienta:",last_sensor_data)
+
+def save_to_database(data,timestamp):
+    for sensor_name, measurements in data.items():
+        sensor = Sensor.query.filter_by(name=sensor_name).first()
+        for measurement_type_name, value in measurements.items():
+            measurement_type = MeasurementType.query.filter_by(name=measurement_type_name).first()
+            # Dodaj odczyt do tabeli sensor_readings
+            reading = SensorReading(
+                sensor_id=sensor.id,
+                measurement_type_id=measurement_type.id,
+                value=value,
+                timestamp=timestamp
+            )
+            db.session.add(reading)
+    db.session.commit()
+
+
 def collect_sensor_data():
     global last_sensor_data
     with app.app_context():
         while True:
             try:
-                # Czekanie do pełnej minuty
-                now = datetime.now()
-                next_minute = (now + timedelta(minutes=1)
-                               ).replace(second=0, microsecond=0)
-                time_to_wait = (next_minute - now).total_seconds()
-                socketio.sleep(time_to_wait)
-
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                last_sensor_data = {}
-
-                for sensor_object in sensor_objects:
-                    data = sensor_object.read()
-
-                    if sensor_object.name not in last_sensor_data:
-                        last_sensor_data[sensor_object.name] = {}
-                    for measurement_type_name, value in data.items():
-                        last_sensor_data[sensor_object.name][measurement_type_name] = value
-
-                socketio.emit('sensor_data', last_sensor_data)
-                print("Dane zapisane do bazy oraz wysłane do klienta:",
-                      last_sensor_data)
-
-                for sensor_name, measurements in last_sensor_data.items():
-                    # szuka czujnika w bazie
-                    sensor = Sensor.query.filter_by(name=sensor_name).first()
-                    for measurement_type_name, value in measurements.items():
-                        measurement_type = MeasurementType.query.filter_by(
-                            name=measurement_type_name).first()
-
-                        # Dodaj odczyt do tabeli sensor_readings
-                        reading = SensorReading(
-                            sensor_id=sensor.id,
-                            measurement_type_id=measurement_type.id,
-                            value=value,
-                            timestamp=timestamp
-                        )
-                        db.session.add(reading)
-                # zatwierdzenie zapisow w bazie
-                db.session.commit()
-
+                wait_for_next_minute()
+                last_sensor_data,timestamp = read_sensor_data()
+                emit_sensor_data(last_sensor_data)
+                save_to_database(last_sensor_data,timestamp)
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
