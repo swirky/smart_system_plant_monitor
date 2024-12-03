@@ -14,14 +14,14 @@ from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumidi
 import sensor_utils
 
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 # ----------------------------Obiekty inicjalizacja---------------------------------------------
 
-simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
+simulated_light_sensor = SimulatedLightSensor("Light Sensor 1","BH1750")
 simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
 simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
 simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
@@ -38,7 +38,7 @@ simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sens
 # ----------------------------------------------------------------------------------------------
 
 sensor_objects = [
-    simulated_light_sensor_object,
+    simulated_light_sensor,
     simulated_soil_temperature_sensor,
     simulated_soil_temperature_sensor2,
     simulated_air_temperature_humidity_sensor,
@@ -78,13 +78,25 @@ def collect_sensor_data():
             try:
                 wait_for_next_minute()
                 last_sensor_data,timestamp = sensor_utils.read_sensor_data(sensor_objects)
+
                 
                 if active_clients > 0:
                     socketio.emit('sensor_data',last_sensor_data)
                 print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
+                if active_clients > 0:
+                    handle_request_historical_data()
+
             except Exception as e:
                 print(f"Error during data collection: {e}")
+
+
+@socketio.on('request_historical_data')
+def handle_request_historical_data():
+    try:
+        socketio.emit('historical_data_response',sensor_utils.read_measurement_from_db(sensor_objects))
+    except Exception as e:
+        print(f"Error while handling historical data request: {e}")
 
 
 @app.route('/')
@@ -100,11 +112,13 @@ def historic_data_charts():
 @socketio.on('connect')
 def on_connect():
     print("Client connected")
+    sensor_utils.read_measurement_from_db(sensor_objects)
     global active_clients
     active_clients +=1
     if last_sensor_data:
         socketio.emit('sensor_data', last_sensor_data)
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
+    
 
 @socketio.on('disconnect')
 def on_disconnect():
@@ -118,5 +132,5 @@ if __name__ == '__main__':
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.start_background_task(target=emit_server_time)
+    #socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)

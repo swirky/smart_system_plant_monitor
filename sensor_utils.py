@@ -78,3 +78,24 @@ def save_to_database(data,timestamp):
             )
             db.session.add(reading)
     db.session.commit()
+
+
+def read_measurement_from_db(sensor_objects):
+    data_package={}
+
+    for sensor_object in sensor_objects:
+        sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
+        if sensor:
+            sensor_data={}
+            for measurement_name in sensor_object.measurement_types:
+                measurement = MeasurementType.query.filter_by(name=measurement_name).first()
+                if measurement:
+                    readings = SensorReading.query.filter_by(sensor_id=sensor.id, measurement_type_id=measurement.id).order_by(SensorReading.timestamp.desc()).limit(10).all()
+                    sensor_data[measurement_name]=[
+                        {
+                        "timestamp": reading.timestamp.isoformat(),
+                        "value": reading.value
+                        } for reading in readings ]
+            data_package[sensor_object.name]= sensor_data
+    print("BAZA",data_package)
+    return data_package

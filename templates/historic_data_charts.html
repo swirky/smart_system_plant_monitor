@@ -5,11 +5,80 @@
 
 
 {% block content %}
-siema
-<canvas id="myChart" width="400" height="200"></canvas>
 
+<div id="charts-container"></div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const socket = io();
 
+        // Wyślij żądanie o dane historyczne, gdy użytkownik otworzy stronę wykresów
+        socket.emit('request_historical_data');
+
+        // Nasłuchuj na odpowiedź z danymi historycznymi
+        socket.on('historical_data_response', function(data) {
+            console.log("Otrzymano dane historyczne:", data);
+            createCharts(data);
+        });
+
+        // Przykład funkcji do tworzenia wykresów (używamy Chart.js)
+        function createCharts(data) {
+            const chartsContainer = document.getElementById('charts-container');
+            chartsContainer.innerHTML = '';  // Wyczyść kontener, aby uniknąć powielania wykresów
+
+            for (const [sensorName, measurements] of Object.entries(data)) {
+                for (const [measurementType, readingData] of Object.entries(measurements)) {
+                    // Tworzenie unikalnego identyfikatora dla każdego wykresu
+                    const chartId = `${sensorName.replace(/\s+/g, '_')}_${measurementType.replace(/\s+/g, '_')}_chart`;
+
+                    // Tworzenie elementu canvas dla każdego wykresu
+                    const canvas = document.createElement('canvas');
+                    canvas.id = chartId;
+                    canvas.width = 400;
+                    canvas.height = 200;
+                    chartsContainer.appendChild(canvas);
+
+                    // Pobranie danych do wykresu (bez etykiet na osi X)
+                    const values = readingData.map(entry => entry.value);
+
+                    // Tworzenie wykresu Chart.js
+                    const ctx = document.getElementById(chartId).getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: new Array(values.length).fill(''),  // Puste etykiety na osi X
+                            datasets: [{
+                                label: `${sensorName} - ${measurementType}`,
+                                data: values,
+                                fill: false,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                tension: 0.1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    display: false,  // Ukrycie osi X
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: `${measurementType} wartość`
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    });
+</script>
+<!-- Wymagane do Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/luxon@2.3.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
 {% endblock %}
