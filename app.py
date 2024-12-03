@@ -7,50 +7,52 @@ from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTem
 from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
 from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
 #real sensor files
-from sensors.light_sensor import LightSensor
-from sensors.soil_temperature_sensor import SoilTemperatureSensor
-from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
-from sensors.soil_humidity_sensor import SoilHumiditySensor
+# from sensors.light_sensor import LightSensor
+# from sensors.soil_temperature_sensor import SoilTemperatureSensor
+# from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
+# from sensors.soil_humidity_sensor import SoilHumiditySensor
 import sensor_utils
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 # ----------------------------Obiekty inicjalizacja---------------------------------------------
 
-# simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
-# simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-# simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
-# simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
-# simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
-light_sensor_object = LightSensor("Light Sensor 1", "BH1750", 0x23)
-soil_temperature_sensor = SoilTemperatureSensor(
-    "Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
-soil_temperature_sensor2 = SoilTemperatureSensor(
-    "Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
-air_temperature_humidity_sensor = AirTemperatureHumiditySensor(
-    "Air Temperature and Humidity Sensor 1", "DHT11", 13)
-soil_humidity_sensor = SoilHumiditySensor(
-    "Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
+simulated_light_sensor_object = SimulatedLightSensor("Light Sensor 1","BH1750")
+simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
+simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
+# light_sensor_object = LightSensor("Light Sensor 1", "BH1750", 0x23)
+# soil_temperature_sensor = SoilTemperatureSensor(
+#     "Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
+# soil_temperature_sensor2 = SoilTemperatureSensor(
+#     "Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
+# air_temperature_humidity_sensor = AirTemperatureHumiditySensor(
+#     "Air Temperature and Humidity Sensor 1", "DHT11", 13)
+# soil_humidity_sensor = SoilHumiditySensor(
+#     "Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
 # ----------------------------------------------------------------------------------------------
 
 sensor_objects = [
-    # simulated_light_sensor_object,
-    # simulated_soil_temperature_sensor,
-    # simulated_soil_temperature_sensor2,
-    # simulated_air_temperature_humidity_sensor,
-    # simulated_soil_humidity_sensor
-    light_sensor_object,
-    soil_temperature_sensor,
-    soil_temperature_sensor2,
-    air_temperature_humidity_sensor,
-    soil_humidity_sensor
+    simulated_light_sensor_object,
+    simulated_soil_temperature_sensor,
+    simulated_soil_temperature_sensor2,
+    simulated_air_temperature_humidity_sensor,
+    simulated_soil_humidity_sensor
+    # light_sensor_object,
+    # soil_temperature_sensor,
+    # soil_temperature_sensor2,
+    # air_temperature_humidity_sensor,
+    # soil_humidity_sensor
 ]
 
+#zmienne globalne
 last_sensor_data = None
+active_clients = 0
 
 def wait_for_next_minute():
     now = datetime.now()
@@ -70,12 +72,16 @@ def emit_server_time():
 
 def collect_sensor_data():
     global last_sensor_data
+    global active_clients
     with app.app_context():
         while True:
             try:
                 wait_for_next_minute()
                 last_sensor_data,timestamp = sensor_utils.read_sensor_data(sensor_objects)
-                emit_sensor_data(last_sensor_data)
+                
+                if active_clients > 0:
+                    socketio.emit('sensor_data',last_sensor_data)
+                print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
             except Exception as e:
                 print(f"Error during data collection: {e}")
@@ -93,11 +99,18 @@ def historic_data_charts():
 
 @socketio.on('connect')
 def on_connect():
-    print('Client connected')
+    print("Client connected")
+    global active_clients
+    active_clients +=1
     if last_sensor_data:
-        # jednorazowe emitowanie ostatnio dostepnej wartosci z zmiennej globalnej
         socketio.emit('sensor_data', last_sensor_data)
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
+
+@socketio.on('disconnect')
+def on_disconnect():
+    print("Client disconnected")
+    global active_clients
+    active_clients = active_clients-1
 
 
 if __name__ == '__main__':
