@@ -96,7 +96,7 @@ def collect_sensor_data():
 
 def background_thread():
     with app.app_context():
-        while background_stop_event.is_set()==False:
+        while not background_stop_event.is_set():
             wait_for_next_minute()
             socketio.emit('historical_data_emit',sensor_utils.read_measurement_from_db(sensor_objects), room='clients')
 
@@ -147,5 +147,5 @@ if __name__ == '__main__':
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    #socketio.start_background_task(target=emit_server_time)
+    socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)
