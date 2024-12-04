@@ -97,5 +97,5 @@ def read_measurement_from_db(sensor_objects):
                         "value": reading.value
                         } for reading in readings ]
             data_package[sensor_object.name]= sensor_data
-    print("BAZA",data_package)
+    print("Zaczytano z bazy dla wykresów dane")
     return data_package

@@ -10,13 +10,9 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const socket = io();
-
-        // Wyślij żądanie o dane historyczne, gdy użytkownik otworzy stronę wykresów
-        socket.emit('request_historical_data');
 
         // Nasłuchuj na odpowiedź z danymi historycznymi
-        socket.on('historical_data_response', function(data) {
+        socket.on('historical_data_emit', function(data) {
             console.log("Otrzymano dane historyczne:", data);
             createCharts(data);
         });

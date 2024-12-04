@@ -39,10 +39,37 @@
     </div>
   </div>
 </nav>
+<div>
+  <span>Czas na twoim urządzeniu: </span> <p id="current-time"> Ładowanie...</p>
+  <span>Czas na Raspberce: </span><p id="server-time"> Ładowanie...</p>
+</div>
+
     <div class="content container mt-4">
         {% block content %}{% endblock %}
     </div>
-
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const socket = io.connect();
+      socket.on('server_time', function(data) {
+          document.getElementById('server-time').innerText = data.time;
+      });
+    
+      setInterval(updateTime, 1000);
+      function updateTime() {
+          const now = new Date();
+          const formattedTime = now.toLocaleString('pl-PL', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+          });
+          document.getElementById('current-time').innerText = formattedTime;
+      }
+    </script>
+    
+    
 </body>
 </html>

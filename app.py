@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO
+from flask import Flask, render_template, jsonify, request
+from flask_socketio import SocketIO, join_room, leave_room
 from dbmodels import db
+import threading
+from threading import Event, Lock
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
 from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
 from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
@@ -53,6 +55,10 @@ sensor_objects = [
 #zmienne globalne
 last_sensor_data = None
 active_clients = 0
+thread = None
+
+thread_lock = Lock()
+background_stop_event = threading.Event()
 
 def wait_for_next_minute():
     now = datetime.now()
@@ -79,24 +85,21 @@ def collect_sensor_data():
                 wait_for_next_minute()
                 last_sensor_data,timestamp = sensor_utils.read_sensor_data(sensor_objects)
 
-                
                 if active_clients > 0:
                     socketio.emit('sensor_data',last_sensor_data)
                 print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
-                if active_clients > 0:
-                    handle_request_historical_data()
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
 
-@socketio.on('request_historical_data')
-def handle_request_historical_data():
-    try:
-        socketio.emit('historical_data_response',sensor_utils.read_measurement_from_db(sensor_objects))
-    except Exception as e:
-        print(f"Error while handling historical data request: {e}")
+def background_thread():
+    with app.app_context():
+        while background_stop_event.is_set()==False:
+            wait_for_next_minute()
+            socketio.emit('historical_data_emit',sensor_utils.read_measurement_from_db(sensor_objects), room='clients')
+
 
 
 @app.route('/')
@@ -111,13 +114,20 @@ def historic_data_charts():
 
 @socketio.on('connect')
 def on_connect():
-    print("Client connected")
-    sensor_utils.read_measurement_from_db(sensor_objects)
     global active_clients
     active_clients +=1
+    global thread
+    print("Client connected")
+    join_room('clients')
+
+    with thread_lock:
+        if thread is None:
+            background_stop_event.clear()
+            thread = socketio.start_background_task(background_thread)
     if last_sensor_data:
-        socketio.emit('sensor_data', last_sensor_data)
+        socketio.emit('sensor_data', last_sensor_data,  room=request.sid)
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
+    socketio.emit('historical_data_emit',sensor_utils.read_measurement_from_db(sensor_objects),room=request.sid)
     
 
 @socketio.on('disconnect')
@@ -125,6 +135,11 @@ def on_disconnect():
     print("Client disconnected")
     global active_clients
     active_clients = active_clients-1
+    leave_room('clients')
+
+    if active_clients==0:
+        background_stop_event.set()
+
 
 
 if __name__ == '__main__':
