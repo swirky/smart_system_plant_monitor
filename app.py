@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, join_room, leave_room
+from concurrent.futures import ThreadPoolExecutor
 from dbmodels import db
 import threading
 from threading import Event, Lock
@@ -56,7 +57,7 @@ sensor_objects = [
 last_sensor_data = None
 active_clients = 0
 thread = None
-
+executor = ThreadPoolExecutor(max_workers=1)
 thread_lock = Lock()
 background_stop_event = threading.Event()
 
@@ -101,7 +102,6 @@ def background_thread():
             socketio.emit('historical_data_emit',sensor_utils.read_measurement_from_db(sensor_objects), room='clients')
 
 
-
 @app.route('/')
 def main_panel():
     return render_template('main_panel.html')
@@ -119,9 +119,9 @@ def on_connect():
     global thread
     print("Client connected")
     join_room('clients')
-
+    
     with thread_lock:
-        if thread is None:
+        if thread is None or not thread.is_alive():
             background_stop_event.clear()
             thread = socketio.start_background_task(background_thread)
     if last_sensor_data:
@@ -132,13 +132,15 @@ def on_connect():
 
 @socketio.on('disconnect')
 def on_disconnect():
-    print("Client disconnected")
     global active_clients
+    global thread
+    print("Client disconnected")
     active_clients = active_clients-1
     leave_room('clients')
 
     if active_clients==0:
         background_stop_event.set()
+        thread = None
 
 
 
@@ -147,5 +149,5 @@ if __name__ == '__main__':
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.start_background_task(target=emit_server_time)
+    #socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)
