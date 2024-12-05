@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
 from dbmodels import db
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
@@ -53,6 +53,7 @@ sensor_objects = [
 #zmienne globalne
 last_sensor_data = None
 active_clients = 0
+client_preferences = {}
 
 def wait_for_next_minute():
     now = datetime.now()
@@ -85,16 +86,24 @@ def collect_sensor_data():
                 print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
                 if active_clients > 0:
-                    handle_request_historical_data()
+                    for client_id, days in client_preferences.items():
+                        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days)
+                        socketio.emit('historical_data_response', historical_data, to=client_id)
+                        print(f"Wysłano dane dla klienta {client_id} z zakresem {days} dni")
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
 
-@socketio.on('request_historical_data')
-def handle_request_historical_data():
+@socketio.on('request_historical_data_with_range')
+def handle_request_historical_data_with_range(data):
     try:
-        socketio.emit('historical_data_response',sensor_utils.read_measurement_from_db(sensor_objects))
+        client_id = request.sid
+        days = data.get('days', 7)
+        client_preferences[client_id] = days
+        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days)
+        socketio.emit('historical_data_response',historical_data, to=client_id)
+        print("emitowanie dla bazy")
     except Exception as e:
         print(f"Error while handling historical data request: {e}")
 
@@ -112,7 +121,6 @@ def historic_data_charts():
 @socketio.on('connect')
 def on_connect():
     print("Client connected")
-    sensor_utils.read_measurement_from_db(sensor_objects)
     global active_clients
     active_clients +=1
     if last_sensor_data:

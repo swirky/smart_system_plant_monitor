@@ -80,8 +80,9 @@ def save_to_database(data,timestamp):
     db.session.commit()
 
 
-def read_measurement_from_db(sensor_objects):
+def read_measurement_from_db_within_range(sensor_objects,days):
     data_package={}
+    time_threshold = datetime.now() - timedelta(days=days)
 
     for sensor_object in sensor_objects:
         sensor = Sensor.query.filter_by(name=sensor_object.name, model=sensor_object.model).first()
@@ -90,12 +91,16 @@ def read_measurement_from_db(sensor_objects):
             for measurement_name in sensor_object.measurement_types:
                 measurement = MeasurementType.query.filter_by(name=measurement_name).first()
                 if measurement:
-                    readings = SensorReading.query.filter_by(sensor_id=sensor.id, measurement_type_id=measurement.id).order_by(SensorReading.timestamp.desc()).limit(10).all()
+                    readings = SensorReading.query.filter(
+                        SensorReading.sensor_id == sensor.id,
+                        SensorReading.measurement_type_id == measurement.id,
+                        SensorReading.timestamp >= time_threshold
+                    ).order_by(SensorReading.timestamp.desc()).all()
                     sensor_data[measurement_name]=[
                         {
                         "timestamp": reading.timestamp.isoformat(),
                         "value": reading.value
                         } for reading in readings ]
             data_package[sensor_object.name]= sensor_data
-    print("BAZA",data_package)
+    print("BAZA")
     return data_package

@@ -6,14 +6,27 @@
 
 {% block content %}
 
+<div>
+    <label for="timeRange">Wybierz zakres czasowy:</label>
+    <select id="timeRange">
+        <option value="1" selected>Ostatni dzień</option>
+        <option value="2">Ostatni tydzień</option>
+    </select>
+</div>
+
 <div id="charts-container"></div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const socket = io();
 
+        document.getElementById('timeRange').addEventListener('change', function() {
+        const days = parseInt(this.value, 10);
+        socket.emit('request_historical_data_with_range', { days });
+    });
+
         // Wyślij żądanie o dane historyczne, gdy użytkownik otworzy stronę wykresów
-        socket.emit('request_historical_data');
+        socket.emit('request_historical_data_with_range',{days: 1});
 
         // Nasłuchuj na odpowiedź z danymi historycznymi
         socket.on('historical_data_response', function(data) {
