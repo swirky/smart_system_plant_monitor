@@ -62,11 +62,11 @@
 
             // Sprawdź, czy pola istnieją
             if (minInput && maxInput) {
-                const minValue = parseFloat(minInput.value) || 0; // Pobierz wartość minimalną
-                const maxValue = parseFloat(maxInput.value) || 0; // Pobierz wartość maksymalną
+                const minValue = minInput.value ? parseFloat(minInput.value) : null; // Pobierz wartość minimalną
+                const maxValue = maxInput.value ? parseFloat(maxInput.value) : null;
 
                 // Walidacja: minValue nie może być większe niż maxValue
-                if (minValue > maxValue) {
+                if (minValue !== null && maxValue !== null && minValue > maxValue) {
                     isValid = false;
 
                     minError.textContent = `Minimalna wartość nie może być większa niż maksymalna)`;

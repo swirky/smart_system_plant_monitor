@@ -104,7 +104,9 @@ def handle_request_historical_data_with_range(data):
         hours = data.get('hours',1)
         client_preferences[client_id] = {'days': days, 'hours': hours}
         historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects,days,hours)
-        socketio.emit('historical_data_response',historical_data, to=client_id)
+        thresholds = sensor_utils.get_all_thresholds()
+        chart_data = {'historical_data': historical_data,'thresholds': thresholds}
+        socketio.emit('historical_data_response',chart_data, to=client_id)
         print("emitowanie dla bazy")
     except Exception as e:
         print(f"Error while handling historical data request: {e}")

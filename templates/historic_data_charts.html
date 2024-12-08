@@ -35,12 +35,15 @@
 
         // Nasłuchuj na odpowiedź z danymi historycznymi
         socket.on('historical_data_response', function(data) {
-            console.log("Otrzymano dane historyczne:", data);
-            createCharts(data);
+            const {historical_data, thresholds} = data;
+
+            console.log("Dane historyczne:", historical_data);
+            console.log("Progi alarmowe:", thresholds);
+            createCharts(historical_data,thresholds);
         });
 
         // Przykład funkcji do tworzenia wykresów (używamy Chart.js)
-        function createCharts(data) {
+        function createCharts(data,thresholds) {
             const chartsContainer = document.getElementById('charts-container');
             chartsContainer.innerHTML = '';  // Wyczyść kontener, aby uniknąć powielania wykresów
 
@@ -59,6 +62,39 @@
                     // Pobranie danych do wykresu (bez etykiet na osi X)
                     const values = readingData.map(entry => entry.value);
                     const labels = readingData.map(entry => entry.timestamp);
+                    const threshold = thresholds.find(t => t.sensor_name === sensorName && t.measurement_type_name === measurementType);
+                    const annotations = [];
+                    if (threshold?.min_value != null) {
+                        annotations.push({
+                            type: 'line',
+                            mode: 'horizontal',
+                            yMin: threshold.min_value,
+                            yMax: threshold.min_value,
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            label: {
+                                content: 'Minimalny próg',
+                                enabled: true,
+                                position: 'start'
+                            }
+                        });
+                    }
+
+                    if (threshold?.max_value != null) {
+                        annotations.push({
+                            type: 'line',
+                            mode: 'horizontal',
+                            yMin: threshold.max_value,
+                            yMax: threshold.max_value,
+                            borderColor: 'green',
+                            borderWidth: 2,
+                            label: {
+                                content: 'Maksymalny próg',
+                                enabled: true,
+                                position: 'start'
+                            }
+                        });
+                    }
 
                     // Tworzenie wykresu Chart.js
                     const ctx = document.getElementById(chartId).getContext('2d');
@@ -75,6 +111,11 @@
                             }]
                         },
                         options: {
+                            plugins: {
+                                annotation: {
+                                    annotations:annotations
+                                }
+                            },
                             responsive: true,
                             scales: {
                                 x: {
@@ -109,6 +150,7 @@
 </script>
 <!-- Wymagane do wykresów -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.0"></script>
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
