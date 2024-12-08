@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, flash, redirect, render_template, jsonify, request
 from flask_socketio import SocketIO
 from dbmodels import db
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
@@ -17,6 +17,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = 'unique-secret-key'
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 # ----------------------------Obiekty inicjalizacja---------------------------------------------
@@ -79,44 +80,54 @@ def collect_sensor_data():
             try:
                 wait_for_next_minute()
                 last_sensor_data,timestamp = sensor_utils.read_sensor_data(sensor_objects)
-
                 
                 if active_clients > 0:
                     socketio.emit('sensor_data',last_sensor_data)
                 print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
                 if active_clients > 0:
-                    for client_id, days in client_preferences.items():
-                        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days)
+                    for client_id, prefs in client_preferences.items():  
+                        days = prefs['days']
+                        hours = prefs['hours']
+                        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days, hours)
                         socketio.emit('historical_data_response', historical_data, to=client_id)
                         print(f"Wysłano dane dla klienta {client_id} z zakresem {days} dni")
 
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
-
 @socketio.on('request_historical_data_with_range')
 def handle_request_historical_data_with_range(data):
     try:
         client_id = request.sid
-        days = data.get('days', 7)
-        client_preferences[client_id] = days
-        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days)
+        days = data.get('days', 1)
+        hours = data.get('hours',1)
+        client_preferences[client_id] = {'days': days, 'hours': hours}
+        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects,days,hours)
         socketio.emit('historical_data_response',historical_data, to=client_id)
         print("emitowanie dla bazy")
     except Exception as e:
         print(f"Error while handling historical data request: {e}")
 
-
 @app.route('/')
 def main_panel():
     return render_template('main_panel.html')
-
 
 @app.route('/historic_data_charts')
 def historic_data_charts():
     return render_template('historic_data_charts.html')
 
+@app.route('/get_thresholds', methods=['GET'])
+def get_thresholds():
+    thresholds = sensor_utils.get_all_thresholds()
+    print(thresholds)
+    return render_template('threshold_config.html', thresholds_data=thresholds)
+
+@app.route('/save_thresholds', methods=['POST'])
+def save_thresholds():
+    sensor_utils.save_thresholds_to_db(request.form)
+    flash('Progi alarmowe zostały zapisane!')
+    return redirect('/get_thresholds')
 
 @socketio.on('connect')
 def on_connect():
@@ -127,7 +138,6 @@ def on_connect():
         socketio.emit('sensor_data', last_sensor_data)
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
     
-
 @socketio.on('disconnect')
 def on_disconnect():
     print("Client disconnected")
@@ -140,5 +150,5 @@ if __name__ == '__main__':
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    #socketio.start_background_task(target=emit_server_time)
+    socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)

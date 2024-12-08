@@ -31,8 +31,7 @@ class SensorTypeCapabilities(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sensor_type_id = db.Column(db.Integer, db.ForeignKey(
         'sensor_types.id'), nullable=False)
-    measurement_type_id = db.Column(db.Integer, db.ForeignKey(
-        'measurement_types.id'), nullable=False)
+    measurement_type_id = db.Column(db.Integer, db.ForeignKey('measurement_type.id'), nullable=False)
 
     def __repr__(self):
         return f"<SensorTypeCapabilities(id={self.id}, sensor_type_id={self.sensor_type_id}, measurement_type_id={self.measurement_type_id})>"
@@ -64,3 +63,16 @@ class SensorReading(db.Model):
 
     def __repr__(self):
         return f"<SensorReading(id={self.id}, sensor_id={self.sensor_id}, measurement_type_id={self.measurement_type_id}, value={self.value}, timestamp='{self.timestamp}')>"
+    
+
+class ThresholdValues(db.Model):
+    __tablename__ = 'threshold_values'
+    id = db.Column(db.Integer, primary_key=True)
+    sensor_id = db.Column(db.Integer, db.ForeignKey('sensors.id'), nullable=False)
+    measurement_type_id = db.Column(db.Integer, db.ForeignKey('measurement_types.id'), nullable=False)
+    min_value = db.Column(db.Float, nullable=True)
+    max_value = db.Column(db.Float, nullable=True)
+
+    def __repr__(self):
+        return f"<ThresholdValues(sensor_id={self.sensor_id}, measurement_type_id={self.measurement_type_id}, min_value={self.min_value}, max_value={self.max_value})>"
+

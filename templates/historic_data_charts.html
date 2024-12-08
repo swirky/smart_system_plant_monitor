@@ -1,16 +1,14 @@
 {% extends "base.html" %}
-
 {%block title%} Wykresy - dane historyczne {%endblock%}
-
-
-
 {% block content %}
 
 <div>
     <label for="timeRange">Wybierz zakres czasowy:</label>
     <select id="timeRange">
-        <option value="1" selected>Ostatni dzień</option>
-        <option value="2">Ostatni tydzień</option>
+        <option value="060" selected>Ostatnia godzina - dane co 1 min</option>
+        <option value="1">Ostatni dzień - dane co 1h</option>
+        <option value="7">Ostatni tydzień - dane co 1h</option>
+        <option value="30">Ostatni miesiąc - dane co 1 dzień</option>
     </select>
 </div>
 
@@ -19,14 +17,21 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const socket = io();
-
         document.getElementById('timeRange').addEventListener('change', function() {
-        const days = parseInt(this.value, 10);
-        socket.emit('request_historical_data_with_range', { days });
+            const value = this.value;
+            let days = null;
+            let hours = null;
+            if (value === "060") {
+                hours = 1; // Ostatnia godzina
+            } else {
+                days = parseInt(value, 10); // Zakres w dniach
+            }
+
+        socket.emit('request_historical_data_with_range', { days:days, hours:hours });
     });
 
         // Wyślij żądanie o dane historyczne, gdy użytkownik otworzy stronę wykresów
-        socket.emit('request_historical_data_with_range',{days: 1});
+        socket.emit('request_historical_data_with_range',{days: null, hours:1});
 
         // Nasłuchuj na odpowiedź z danymi historycznymi
         socket.on('historical_data_response', function(data) {
@@ -53,13 +58,14 @@
 
                     // Pobranie danych do wykresu (bez etykiet na osi X)
                     const values = readingData.map(entry => entry.value);
+                    const labels = readingData.map(entry => entry.timestamp);
 
                     // Tworzenie wykresu Chart.js
                     const ctx = document.getElementById(chartId).getContext('2d');
                     new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: new Array(values.length).fill(''),  // Puste etykiety na osi X
+                            labels: labels,
                             datasets: [{
                                 label: `${sensorName} - ${measurementType}`,
                                 data: values,
@@ -72,7 +78,19 @@
                             responsive: true,
                             scales: {
                                 x: {
-                                    display: false,  // Ukrycie osi X
+                                    title: {
+                                        display: true,
+                                        text: 'Data i czas'
+                                    },
+                                    type: 'time',
+                                    time: {
+                                        tooltipFormat: 'yyyy-MM-dd HH:mm',
+                                        displayFormats: {
+                                            minute: 'HH:mm',
+                                            hour: 'HH:mm',
+                                            day: 'yyyy-MM-dd'
+                                        }
+                                    } 
                                 },
                                 y: {
                                     beginAtZero: true,
@@ -89,9 +107,9 @@
         }
     });
 </script>
-<!-- Wymagane do Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/luxon@2.3.0/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<!-- Wymagane do wykresów -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.0"></script>
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 {% endblock %}

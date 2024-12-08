@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{%from "macros.html" import show_flash%}
+
+{%block title%} Panel główny {%endblock%}
+
+{% block content %}
+{{ show_flash() }}
+
+<div class="container mt-5">
+    <h2>Progi alarmowe</h2>
+    <form action="/save_thresholds" method="POST" onsubmit="return validateForm(event)">
+        <table class="table table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Nazwa czujnika</th>
+                    <th>Typ pomiaru</th>
+                    <th>Minimalna wartość</th>
+                    <th>Maksymalna wartość</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for threshold in thresholds_data %}
+                <tr>
+                    <td>{{ threshold.sensor_name }}</td>
+                    <td>{{ threshold.measurement_type_name }}</td>
+                    <td>
+                        <input type="number" step="0.01" name="min_value_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" value="{{ threshold.min_value }}" style="width: 80px;" >
+                        <div class="error-message text-danger" style="display: none;">Błąd!</div>
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" name="max_value_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" value="{{ threshold.max_value }}" style="width: 80px;">
+                        <div class="error-message text-danger" style="display: none;">Błąd!</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+        <button type="reset" class="btn btn-primary">Aktualnie zapisane dane</button>
+    </form>
+</div>
+<script>
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.classList.remove('show'); // Ukryj alert
+            alert.classList.add('fade'); // Dodaj animację znikania
+        }
+    }, 3000); // Czas w milisekundach (3 sekundy)
+</script>
+
+<script>
+    function validateForm(event) {
+        // Pobierz wszystkie wiersze tabeli
+        const rows = document.querySelectorAll("tbody tr");
+        let isValid = true; // Flaga walidacji
+        rows.forEach(row => {
+            const minInput = row.querySelector("input[name^='min_value']");
+            const maxInput = row.querySelector("input[name^='max_value']");
+            const minError = minInput.nextElementSibling; // Element div z komunikatem obok minInput
+            const maxError = maxInput.nextElementSibling;
+
+            // Sprawdź, czy pola istnieją
+            if (minInput && maxInput) {
+                const minValue = parseFloat(minInput.value) || 0; // Pobierz wartość minimalną
+                const maxValue = parseFloat(maxInput.value) || 0; // Pobierz wartość maksymalną
+
+                // Walidacja: minValue nie może być większe niż maxValue
+                if (minValue > maxValue) {
+                    isValid = false;
+
+                    minError.textContent = `Minimalna wartość nie może być większa niż maksymalna)`;
+                    minError.style.display = "block";
+
+                    // Podświetl pola z błędem
+                    minInput.style.border = "2px solid red";
+                    maxInput.style.border = "2px solid red";
+                } else {
+                    minInput.style.border = "";
+                    maxInput.style.border = "";
+                }
+            }
+        });
+
+        // Zatrzymaj wysyłanie formularza, jeśli walidacja się nie powiodła
+        if (!isValid) {
+            event.preventDefault();
+        }
+        return isValid; // Zwróć wynik walidacji
+    }
+</script>
+{%endblock%}
