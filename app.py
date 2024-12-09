@@ -144,13 +144,16 @@ def save_thresholds():
     return redirect('/get_thresholds')
 
 @app.route('/get_notification_config_data', methods=['GET'])
-def notification_config_data():
+def get_notification_config_data():
     email_recipients = sensor_utils.get_email_recipients()
-    
     thresholds = sensor_utils.get_all_thresholds()
     for t in thresholds:
         print(t)
     return render_template('notification_config.html', email_recipients=email_recipients, thresholds=thresholds)
+
+@app.route('/save_notification_config_data', methods=['POST'])
+def save_notification_config_data():
+    print('skoncz')
 
 
 @socketio.on('connect')
