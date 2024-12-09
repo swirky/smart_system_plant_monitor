@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{%from "macros.html" import show_flash%}
+
+{%block title%} Panel główny {%endblock%}
+
+{% block content %}
+{{ show_flash() }}
+
+<form id="email-form" action="/save_emails" method="POST">
+    <div class="mb-3">
+        <label for="email1" class="form-label">Adres e-mail 1</label>
+        <input type="email" class="form-control" id="email1" name="email1" required>
+    </div>
+    <div class="mb-3">
+        <label for="email2" class="form-label">Adres e-mail 2</label>
+        <input type="email" class="form-control" id="email2" name="email2">
+    </div>
+    <div class="mb-3">
+        <label for="email3" class="form-label">Adres e-mail 3</label>
+        <input type="email" class="form-control" id="email3" name="email3">
+    </div>
+    <button type="submit" class="btn btn-primary">Zapisz adresy e-mail</button>
+</form>
+
+
+{%endblock%}

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import re
 from sqlalchemy import func
-from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading, ThresholdValues
+from dbmodels import db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading, ThresholdValues, EmailRecipients
 
 
 def add_sensor_or_sensor_type_if_not_exists(sensor_object):
@@ -65,7 +65,7 @@ def get_all_thresholds():
         MeasurementType.name.label('measurement_type_name')
     ).join(Sensor, ThresholdValues.sensor_id == Sensor.id) \
      .join(MeasurementType, ThresholdValues.measurement_type_id == MeasurementType.id) \
-     .all()    
+     .all()  
      
     return [{
         'sensor_id': t.ThresholdValues.sensor_id,
@@ -73,8 +73,10 @@ def get_all_thresholds():
         'measurement_type_id': t.ThresholdValues.measurement_type_id,
         'measurement_type_name': t.measurement_type_name,
         'min_value': t.ThresholdValues.min_value,
-        'max_value': t.ThresholdValues.max_value
+        'max_value': t.ThresholdValues.max_value,
+        'last_notification': t.ThresholdValues.last_notification
     } for t in thresholds]
+
 
 def add_sensor_reading(sensor, reading_value):
     reading = SensorReading(sensor_id=sensor.id, value=reading_value)
@@ -147,6 +149,17 @@ def save_thresholds_to_db(data):
             )
             db.session.add(new_threshold)
     db.session.commit()
+
+#-------------------funkcje do zczytywania danych z bazy i zapisywania dla zakładki konfiguracji powiadomień---------
+
+def get_email_recipients():
+    email_recipients = [recipient.email for recipient in EmailRecipients.query.all()]
+    return email_recipients
+
+
+
+
+
 
 #--------------------funkcje do zczytywania danych z bazy  do wykresów-----------------------------------------------
 

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from flask import Flask, flash, redirect, render_template, jsonify, request
 from flask_socketio import SocketIO
 from dbmodels import db
+from flask_mail import Mail,Message
 from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
 from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
 from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
@@ -14,12 +15,23 @@ from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumidi
 import sensor_utils
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@192.168.1.20/monitor_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@127.0.0.1/monitor_db'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321%40@127.0.0.1/monit_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'unique-secret-key'
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
+
+app.config['MAIL_SERVER'] ='smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'plantmonitor.w66020@gmail.com'  #email nadawcy
+app.config['MAIL_PASSWORD'] = 'tdwt qjif twik aexe'
+app.config['MAIL_DEFAULT_SENDER'] = 'marek.koksu17@gmail.com'  # Domyślny nadawca
+
+mail = Mail(app)
+
+
 # ----------------------------Obiekty inicjalizacja---------------------------------------------
 
 simulated_light_sensor = SimulatedLightSensor("Light Sensor 1","BH1750")
@@ -131,6 +143,16 @@ def save_thresholds():
     flash('Progi alarmowe zostały zapisane!')
     return redirect('/get_thresholds')
 
+@app.route('/get_notification_config_data', methods=['GET'])
+def notification_config_data():
+    email_recipients = sensor_utils.get_email_recipients()
+    
+    thresholds = sensor_utils.get_all_thresholds()
+    for t in thresholds:
+        print(t)
+    return render_template('notification_config.html', email_recipients=email_recipients, thresholds=thresholds)
+
+
 @socketio.on('connect')
 def on_connect():
     print("Client connected")
@@ -147,10 +169,23 @@ def on_disconnect():
     active_clients = active_clients-1
 
 
+@app.route('/send_email')
+def send_email():
+    try:
+        msg = Message(
+            subject='Testowa wiadomość email',
+            recipients=['marek.koksu17@gmail.com'],
+            body='Siemanko'
+        )
+        mail.send(msg)
+        return "Email wysłany"
+    except Exception as e:
+        return f"Wystąpił błąd podczas wyslania maila {e}"
+    
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    socketio.start_background_task(target=emit_server_time)
+    #socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)
