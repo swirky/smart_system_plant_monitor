@@ -5,22 +5,59 @@
 
 {% block content %}
 {{ show_flash() }}
+<h6> Odbiorca powiadomień </h6>
+<form action="/save_email" method="POST">
+    <div class="mb-3">
+        <label for="email" class="form-label">Adres e-mail</label>
+        <input type="email" class="form-control" id="email" name="email" value="{{email}}" required>
+    </div>
 
-<form id="email-form" action="/save_emails" method="POST">
-    <div class="mb-3">
-        <label for="email1" class="form-label">Adres e-mail 1</label>
-        <input type="email" class="form-control" id="email1" name="email1" required>
-    </div>
-    <div class="mb-3">
-        <label for="email2" class="form-label">Adres e-mail 2</label>
-        <input type="email" class="form-control" id="email2" name="email2">
-    </div>
-    <div class="mb-3">
-        <label for="email3" class="form-label">Adres e-mail 3</label>
-        <input type="email" class="form-control" id="email3" name="email3">
-    </div>
     <button type="submit" class="btn btn-primary">Zapisz adresy e-mail</button>
 </form>
 
+    <h6>Skonfigurowane progi alarmowe</h6>
+    <form action="/save_threshold_notifications" method="POST">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Czujnik</th>
+                    <th>Typ pomiaru</th>
+                    <th>Minimalny próg</th>
+                    <th>Maksymalny próg</th>
+                    <th>Aktywuj powiadomienia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for threshold in thresholds %}
+                {% if threshold.min_value is not none or threshold.max_value is not none %}
+                <tr>
+                    <td>{{ threshold.sensor_name }}</td>
+                    <td>{{ threshold.measurement_type_name }}</td>
+                    <td>{{ threshold.min_value }}</td>
+                    <td>{{ threshold.max_value }}</td>
+                    <td>
+                        <input type="hidden" name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" value="false">
+                        <input type="checkbox" 
+                            name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" 
+                            value="true" 
+                            {% if threshold.notification_is_active %}checked{% endif %}>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Zapisz konfigurację powiadomień</button>
+    </form>
 
 {%endblock%}
+
+<script>
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.classList.remove('show'); // Ukryj alert
+            alert.classList.add('fade'); // Dodaj animację znikania
+        }
+    }, 3000); // Czas w milisekundach (3 sekundy)
+</script>

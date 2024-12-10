@@ -74,7 +74,8 @@ def get_all_thresholds():
         'measurement_type_name': t.measurement_type_name,
         'min_value': t.ThresholdValues.min_value,
         'max_value': t.ThresholdValues.max_value,
-        'last_notification': t.ThresholdValues.last_notification
+        'last_notification': t.ThresholdValues.last_notification,
+        'notification_is_active': t.ThresholdValues.notification_is_active
     } for t in thresholds]
 
 
@@ -92,7 +93,6 @@ def initialize_sensors(sensor_objects):
 def read_sensor_data(sensor_objects):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sensor_data = {}
-
     for sensor_object in sensor_objects:
         data = sensor_object.read()
         if sensor_object.name not in sensor_data:
@@ -115,7 +115,6 @@ def save_to_database(data,timestamp):
             )
             db.session.add(reading)
     db.session.commit()
-
 
 def save_thresholds_to_db(data):
     thresholds = []
@@ -153,12 +152,49 @@ def save_thresholds_to_db(data):
 #-------------------funkcje do zczytywania danych z bazy i zapisywania dla zakładki konfiguracji powiadomień---------
 
 def get_email_recipients():
-    email_recipients = [recipient.email for recipient in EmailRecipients.query.all()]
-    return email_recipients
+    email = EmailRecipients.query.first()
+    return email.email if email else ''
 
+def save_email_to_db(email):
+    existing_email = EmailRecipients.query.first()
+    if existing_email:
+        existing_email.email = email
+    else:
+        new_email = EmailRecipients(email=email)
+        db.session.add(new_email)      
+    db.session.commit()
 
+def save_threshold_notification_to_db(data):
+    print(data.get('notification_1_1'))
+    thresholds=[]
+    for key, value in data.items():
+        if key.startswith('notification_'):  # Filtruj dane checkboxów
+            _, sensor_id, measurement_type_id = key.split('_')
+            is_active = value == 'true'  # Porównaj wartość z "true"
 
+            thresholds.append({
+                'sensor_id': int(sensor_id),
+                'measurement_type_id': int(measurement_type_id),
+                'notification_is_active': is_active
+            })
 
+    # Aktualizacja bazy
+    for threshold in thresholds:
+        sensor_id = threshold.get("sensor_id")
+        measurement_type_id = threshold.get("measurement_type_id")
+        is_active = threshold.get("notification_is_active")
+
+        print(f"Przetwarzanie: sensor_id={sensor_id}, measurement_type_id={measurement_type_id}, is_active={is_active}")
+
+        existing_threshold = ThresholdValues.query.filter_by(
+            sensor_id=sensor_id,
+            measurement_type_id=measurement_type_id
+        ).first()
+
+        if existing_threshold:
+            existing_threshold.notification_is_active = is_active
+
+    db.session.commit()
 
 
 #--------------------funkcje do zczytywania danych z bazy  do wykresów-----------------------------------------------
@@ -211,7 +247,6 @@ def read_measurement_from_db_within_range(sensor_objects,days=None,hours=None):
                 readings = get_sensor_measurements(sensor, measurement_name, time_threshold,group_by)
                 sensor_data[measurement_name] = format_readings(readings)
             data_package[sensor_object.name]= sensor_data
-    print("BAZA")
     return data_package
 
 def format_readings(readings):

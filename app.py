@@ -13,6 +13,7 @@ from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumidi
 # from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
 # from sensors.soil_humidity_sensor import SoilHumiditySensor
 import sensor_utils
+import email_notifications
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Mar123321@127.0.0.1/monitor_db'
@@ -104,7 +105,7 @@ def collect_sensor_data():
                         historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days, hours)
                         socketio.emit('historical_data_response', historical_data, to=client_id)
                         print(f"Wysłano dane dla klienta {client_id} z zakresem {days} dni")
-
+                email_notifications.send_alert_emails_for_active_readings()
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
@@ -145,17 +146,26 @@ def save_thresholds():
 
 @app.route('/get_notification_config_data', methods=['GET'])
 def get_notification_config_data():
-    email_recipients = sensor_utils.get_email_recipients()
+    email = sensor_utils.get_email_recipients()
     thresholds = sensor_utils.get_all_thresholds()
     for t in thresholds:
         print(t)
-    return render_template('notification_config.html', email_recipients=email_recipients, thresholds=thresholds)
+    return render_template('notification_config.html', email=email, thresholds=thresholds)
 
-@app.route('/save_notification_config_data', methods=['POST'])
-def save_notification_config_data():
-    print('skoncz')
+@app.route('/save_email', methods=['POST'])
+def save_emails():
+    sensor_utils.save_email_to_db(request.form['email'])
+    flash('Adres e-mail został zapisany!')
+    return redirect('/get_notification_config_data')
 
+@app.route('/save_threshold_notifications', methods=['POST'])
+def save_threshold_notifications():
+    data = request.form
+    sensor_utils.save_threshold_notification_to_db(data)
+    flash('Konfiguracja powiadomień dla progów została zapisana!')
+    return redirect('/get_notification_config_data')
 
+   
 @socketio.on('connect')
 def on_connect():
     print("Client connected")

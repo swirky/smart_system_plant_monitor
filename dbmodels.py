@@ -72,7 +72,8 @@ class ThresholdValues(db.Model):
     measurement_type_id = db.Column(db.Integer, db.ForeignKey('measurement_types.id'), nullable=False)
     min_value = db.Column(db.Float, nullable=True)
     max_value = db.Column(db.Float, nullable=True)
-    last_notification = db.Column(db.DateTime, nullable=True) 
+    last_notification = db.Column(db.DateTime, nullable=True)
+    notification_is_active = db.Column(db.Boolean, nullable=False, default=False) 
 
   
 
