@@ -16,7 +16,7 @@
 </form>
 
     <h6>Skonfigurowane progi alarmowe</h6>
-    <form action="/save_threshold_notifications" method="POST">
+    <form action="{{ url_for('save_threshold_notifications') }}" method="POST">
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -36,11 +36,18 @@
                     <td>{{ threshold.min_value }}</td>
                     <td>{{ threshold.max_value }}</td>
                     <td>
-                        <input type="hidden" name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" value="false">
-                        <input type="checkbox" 
-                            name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" 
-                            value="true" 
-                            {% if threshold.notification_is_active %}checked{% endif %}>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" id="yes" value="true" {{'checked' if threshold.notification_is_active}}>
+                            <label class="form-check-label" for="yes">
+                              Tak
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="notification_{{ threshold.sensor_id }}_{{ threshold.measurement_type_id }}" id="no" value="false" {{'checked' if not threshold.notification_is_active}}>
+                            <label class="form-check-label" for="no">
+                              Nie
+                            </label>
+                          </div>
                     </td>
                 </tr>
                 {% endif %}
@@ -52,12 +59,4 @@
 
 {%endblock%}
 
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if (alert) {
-            alert.classList.remove('show'); // Ukryj alert
-            alert.classList.add('fade'); // Dodaj animację znikania
-        }
-    }, 3000); // Czas w milisekundach (3 sekundy)
-</script>
+

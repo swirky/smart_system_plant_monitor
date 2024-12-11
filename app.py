@@ -93,27 +93,25 @@ def collect_sensor_data():
             try:
                 wait_for_next_minute()
                 last_sensor_data,timestamp = sensor_utils.read_sensor_data(sensor_objects)
-                
-                if active_clients > 0:
-                    socketio.emit('sensor_data',last_sensor_data)
-                print("Liczba klientów:", active_clients)
                 sensor_utils.save_to_database(last_sensor_data,timestamp)
                 if active_clients > 0:
+                    socketio.emit('sensor_data',last_sensor_data)
                     for client_id, prefs in client_preferences.items():  
-                        days = prefs['days']
-                        hours = prefs['hours']
-                        historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects, days, hours)
-                        socketio.emit('historical_data_response', historical_data, to=client_id)
-                        print(f"Wysłano dane dla klienta {client_id} z zakresem {days} dni")
+                        data = {
+                            'days': prefs.get('days', 1),
+                            'hours': prefs.get('hours', 1)
+                        }
+                        handle_request_historical_data_with_range(data,client_id)
                 email_notifications.send_alert_emails_for_active_readings()
             except Exception as e:
                 print(f"Error during data collection: {e}")
 
 @socketio.on('request_historical_data_with_range')
-def handle_request_historical_data_with_range(data):
+def handle_request_historical_data_with_range(data, client_id=None):
     try:
-        client_id = request.sid
-        days = data.get('days', 1)
+        if client_id is None:
+            client_id = request.sid
+        days = data.get('days', 0)
         hours = data.get('hours',1)
         client_preferences[client_id] = {'days': days, 'hours': hours}
         historical_data = sensor_utils.read_measurement_from_db_within_range(sensor_objects,days,hours)
@@ -161,6 +159,10 @@ def save_emails():
 @app.route('/save_threshold_notifications', methods=['POST'])
 def save_threshold_notifications():
     data = request.form
+    checkbox = False if 'contact_ok' not in request.form else True
+    print('X:' ,checkbox)
+    print('XX:', data)
+    
     sensor_utils.save_threshold_notification_to_db(data)
     flash('Konfiguracja powiadomień dla progów została zapisana!')
     return redirect('/get_notification_config_data')
@@ -171,6 +173,8 @@ def on_connect():
     print("Client connected")
     global active_clients
     active_clients +=1
+    client_id = request.sid
+    client_preferences[client_id] = {}
     if last_sensor_data:
         socketio.emit('sensor_data', last_sensor_data)
         print("Wysłano ostatnie dostępne dane do nowego klienta:", last_sensor_data)
@@ -180,25 +184,15 @@ def on_disconnect():
     print("Client disconnected")
     global active_clients
     active_clients = active_clients-1
+    client_id = request.sid
+    if client_id in client_preferences:
+        del client_preferences[client_id]
 
-
-@app.route('/send_email')
-def send_email():
-    try:
-        msg = Message(
-            subject='Testowa wiadomość email',
-            recipients=['marek.koksu17@gmail.com'],
-            body='Siemanko'
-        )
-        mail.send(msg)
-        return "Email wysłany"
-    except Exception as e:
-        return f"Wystąpił błąd podczas wyslania maila {e}"
     
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Tworzy wszystkie tabele, jeśli jeszcze nie istnieją
         sensor_utils.initialize_sensors(sensor_objects)  # Inicjalizacja czujników
     socketio.start_background_task(target=collect_sensor_data)
-    #socketio.start_background_task(target=emit_server_time)
+    socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)

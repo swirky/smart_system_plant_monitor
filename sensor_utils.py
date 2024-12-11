@@ -74,7 +74,6 @@ def get_all_thresholds():
         'measurement_type_name': t.measurement_type_name,
         'min_value': t.ThresholdValues.min_value,
         'max_value': t.ThresholdValues.max_value,
-        'last_notification': t.ThresholdValues.last_notification,
         'notification_is_active': t.ThresholdValues.notification_is_active
     } for t in thresholds]
 
@@ -165,12 +164,14 @@ def save_email_to_db(email):
     db.session.commit()
 
 def save_threshold_notification_to_db(data):
-    print(data.get('notification_1_1'))
     thresholds=[]
     for key, value in data.items():
         if key.startswith('notification_'):  # Filtruj dane checkboxów
             _, sensor_id, measurement_type_id = key.split('_')
-            is_active = value == 'true'  # Porównaj wartość z "true"
+            if value == 'true':
+                is_active = True
+            elif value=='false':
+                is_active = False
 
             thresholds.append({
                 'sensor_id': int(sensor_id),
