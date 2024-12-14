@@ -5,7 +5,7 @@ class SoilTemperatureSensor(Sensor):
     def __init__(self, name, model, device_id=""):
         super().__init__("soil temperature sensor", name,
                          model, measurement_types=["soil temperature"])
-        self.device_id = device_id  # Identyfikator urządzenia 1-Wire
+        self.device_id = device_id
         self.device_file = f"/sys/bus/w1/devices/{self.device_id}/w1_slave"
 
     def read(self):

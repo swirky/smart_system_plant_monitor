@@ -8,6 +8,5 @@ class SimulatedSoilTemperatureSensor(SimulatedSensor):
                          model, measurement_types=["soil temperature"])
 
     def read(self):
-        """Symulacja odczytu temperatury gleby"""
         temperature = round(random.uniform(-10.0, 40.0), 1)
         return {self.measurement_types[0]: temperature}
