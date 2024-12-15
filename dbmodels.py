@@ -20,7 +20,7 @@ class MeasurementType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # Typ pomiaru, np. 'Air Temperature'
     name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=True)  # Opcjonalny opis
+    description = db.Column(db.Text, nullable=True)
 
     def __repr__(self):
         return f"<MeasurementType(id={self.id}, name='{self.name}')>"
@@ -73,8 +73,18 @@ class ThresholdValues(db.Model):
     min_value = db.Column(db.Float, nullable=True)
     max_value = db.Column(db.Float, nullable=True)
     last_notification = db.Column(db.DateTime, nullable=True)
-    notification_is_active = db.Column(db.Boolean, nullable=False, default=False) 
+    notification_is_active = db.Column(db.Boolean, nullable=False, default=False)
 
+
+class SoilMoistureCalibration(db.Model):
+    __tablename__ = 'soil_moisture_calibration'
+    id = db.Column(db.Integer, primary_key=True)
+    moisture_state = db.Column(db.String(50), nullable=False)
+    min_value = db.Column(db.Float, nullable=True)
+    max_value = db.Column(db.Float, nullable=True)
+
+    def __repr__(self):
+        return f"<SoilMoistureCalibration(id={self.id}, moisture_state='{self.moisture_state}', min_value={self.min_value}, max_value={self.max_value})>"
   
 
 class EmailRecipients(db.Model):

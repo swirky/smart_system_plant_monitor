@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import show_flash %}
+
+{% block title %} Panel główny {% endblock %}
+
+{% block content %}
+{{ show_flash() }}
+  <h2>Kalibracja czujnika wilgotności gleby</h2>
+    <form action="/save_soil_moisture_calibration_data" method="POST">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Stan wilgotności gleby</th>
+                <th>Min</th>
+                <th>Max</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for calibration in calibration_data %}
+            <tr>
+                <td>{{ calibration.moisture_state }}</td>
+                <td>
+                    <input type="number" id="{{ calibration.moisture_state|lower|replace(' ', '_') }}_min" name="{{ calibration.moisture_state|lower|replace(' ', '_') }}_min" value="{{ calibration.min_value }}" required style="width: 80px;" step="1">
+                </td>
+                <td>
+                    <input type="number" id="{{ calibration.moisture_state|lower|replace(' ', '_') }}_max" name="{{ calibration.moisture_state|lower|replace(' ', '_') }}_max" value="{{ calibration.max_value }}" required style="width: 80px;" step="1">
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Zapisz kalibrację</button>
+</form>
+
+{% endblock %}

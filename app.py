@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from flask import Flask, flash, redirect, render_template, request
+from flask import Flask, flash, redirect, render_template, request, jsonify
 from flask_socketio import SocketIO
 from dbmodels import db
 import logging
@@ -95,7 +95,9 @@ def collect_sensor_data():
                 last_sensor_data, timestamp = sensor_utils.get_data_from_sensors(sensor_objects)
                 sensor_utils.save_last_data(last_sensor_data, timestamp)
                 if active_clients > 0:
-                    socketio.emit('sensor_data',last_sensor_data)
+                    socketio.emit('sensor_data', last_sensor_data)
+                    humidity_state = sensor_utils.compare_soil_moisture(last_sensor_data)
+                    socketio.emit('soil_moisture_state', humidity_state)
                     handle_client_preferences()
                 email_notifications.send_alert_emails_for_active_readings()
             except Exception as e:
@@ -165,6 +167,18 @@ def save_threshold_notifications():
     return redirect('/get_notification_config_data')
 
 
+@app.route('/get_soil_moisture_calibration_data', methods=['GET'])
+def get_soil_moisture_calibration_data():
+    calibration_data = sensor_utils.get_soil_moisture_calibration()
+    return render_template('soil_moist_calibration.html', calibration_data=calibration_data)
+
+
+@app.route('/save_soil_moisture_calibration_data', methods=['POST'])
+def save_soil_moisture_calibration_data():
+    sensor_utils.save_soil_moisture_calibration(request.form)
+    return redirect('/get_soil_moisture_calibration_data')
+
+
 @socketio.on('connect')
 def on_connect():
     print("Client connected")
@@ -174,6 +188,7 @@ def on_connect():
     client_preferences[client_id] = {}
     if last_sensor_data:
         socketio.emit('sensor_data', last_sensor_data)
+        socketio.emit('soil_moisture_state', sensor_utils.compare_soil_moisture(last_sensor_data))
         print("Sent last available data to client:", last_sensor_data)
 
 

@@ -58,8 +58,9 @@
             <!-- Bloczek 6 -->
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4 d-flex justify-content-center">
                 <div class="sensor-card bg-light p-3 text-center">
-                    <h4>WIlgotność gleby</h4>
-                    <p id="Soil_Humidity_Sensor_1_soil_humidity">--</p><span>units</span>
+                    <h4>Wilgotność gleby</h4>
+                        Stan gleby: <h6 id="humidity_state"></h6>
+                    <h6 id="Soil_Humidity_Sensor_1_soil_humidity">--</h6>
                 </div>
             </div>
         </div>
@@ -68,12 +69,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        
-
 
         const socket = io();
-
-        
 
         // Nasłuchiwanie na dane z backendu
         socket.on('sensor_data', function(data) {
@@ -91,8 +88,11 @@
             }
         });
 
+        socket.on('soil_moisture_state', function(humidity_state) {
+            document.getElementById('humidity_state').innerText = humidity_state;
+        });
+
         socket.on('server_time', function(data) {
-            // Aktualizacja wyświetlanej godziny na podstawie danych z serwera
             document.getElementById('server-time').innerText = data.time;
         });
 

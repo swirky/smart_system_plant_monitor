@@ -3,7 +3,7 @@ import re
 import logging
 from sqlalchemy import func
 from dbmodels import (db, SensorType, MeasurementType, SensorTypeCapabilities, Sensor, SensorReading, ThresholdValues,
-                      EmailRecipients)
+                      EmailRecipients, SoilMoistureCalibration)
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +62,21 @@ def sync_threshold_config_data(sensor_object):
     commit_to_db()
 
 
+def sync_soil_moisture_calibration():
+    default_states = ["Bardzo Sucha", "Sucha", "Nawodniona", "Nadmiernie Nawodniona"]
+    for state in default_states:
+        existing_entry = SoilMoistureCalibration.query.filter_by(moisture_state=state).first()
+        if not existing_entry:
+            new_entry = SoilMoistureCalibration(moisture_state=state, min_value=None, max_value=None)
+            db.session.add(new_entry)
+    commit_to_db()
+
+
 def initialize_sensors(sensor_objects: list):
     for sensor_object in sensor_objects:
         sync_sensor_and_sensor_type(sensor_object)
         sync_threshold_config_data(sensor_object)
-
+    sync_soil_moisture_calibration()
 
 def get_all_thresholds() -> list:
     thresholds = db.session.query(
@@ -220,3 +230,45 @@ def format_readings(readings: list) -> list:
     if not readings:
         return [{"timestamp": "0000-00-00T00:00:00", "value": 0}]
     return [{"timestamp": reading.truncated_time.isoformat(), "value": reading.average_value} for reading in readings]
+
+#------soil moisture calibration operations-----
+
+
+def compare_soil_moisture(last_sensor_data):
+    soil_moisture_value = last_sensor_data.get('Soil Humidity Sensor 1', {}).get('soil humidity', None)
+    if soil_moisture_value is None:
+        return "Unknown"
+    calibration_data = SoilMoistureCalibration.query.all()
+    for calibration in calibration_data:
+        if calibration.min_value is not None and calibration.max_value is not None:
+            if calibration.min_value <= soil_moisture_value <= calibration.max_value:
+                print(calibration.moisture_state)
+                return calibration.moisture_state
+    return "Out of Range"
+
+
+def get_soil_moisture_calibration():
+    calibration_data = SoilMoistureCalibration.query.all()
+    return [
+        {
+            'moisture_state': calibration.moisture_state,
+            'min_value': calibration.min_value,
+            'max_value': calibration.max_value
+        }
+        for calibration in calibration_data
+    ]
+
+
+def save_soil_moisture_calibration(calibration_data):
+    states = ["bardzo_sucha", "sucha", "nawodniona", "nadmiernie_nawodniona"]
+    for state in states:
+        min_value = calibration_data.get(f'{state}_min')
+        max_value = calibration_data.get(f'{state}_max')
+        calibration = SoilMoistureCalibration.query.filter_by(moisture_state=state.replace('_', ' ').title()).first()
+        if not calibration:
+            calibration = SoilMoistureCalibration(moisture_state=state.replace('_', ' ').title())
+        calibration.min_value = float(min_value) if min_value is not None else None
+        calibration.max_value = float(max_value) if max_value is not None else None
+        db.session.add(calibration)
+    commit_to_db()
+
