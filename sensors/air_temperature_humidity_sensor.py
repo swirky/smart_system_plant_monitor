@@ -13,6 +13,6 @@ class AirTemperatureHumiditySensor(Sensor):
     def read(self):
         humidity, temperature = Adafruit_DHT.read_retry(self.sensor, self.gpio)
         if humidity is None or temperature is None:
-            print({f"zmienna humidity lub temperature jest none po probie odczytu"})
+            print({f"Return none"})
         else:
             return {self.measurement_types[0]: temperature, self.measurement_types[1]: humidity}

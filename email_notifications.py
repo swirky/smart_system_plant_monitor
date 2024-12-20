@@ -1,5 +1,4 @@
 from flask_mail import Message
-from app import mail
 import logging
 from datetime import datetime, timedelta
 from dbmodels import db, MeasurementType, Sensor, SensorReading, ThresholdValues
@@ -9,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def send_alert_emails_for_active_readings():
+    from app import mail
     now = datetime.now()
     thresholds = get_active_thresholds()
 

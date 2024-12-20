@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from flask import Flask, flash, redirect, render_template, request, jsonify
+from flask import Flask, flash, redirect, render_template, request
 from flask_socketio import SocketIO
 from dbmodels import db
 import logging
@@ -22,6 +22,7 @@ app.config.from_object(Config)
 socketio = SocketIO(app, cors_allowed_origins='*')
 db.init_app(app)
 mail = Mail(app)
+
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -181,7 +182,6 @@ def save_soil_moisture_calibration_data():
 
 @socketio.on('connect')
 def on_connect():
-    print("Client connected")
     global active_clients
     active_clients +=1
     client_id = request.sid
@@ -194,9 +194,8 @@ def on_connect():
 
 @socketio.on('disconnect')
 def on_disconnect():
-    print("Client disconnected")
     global active_clients
-    active_clients = active_clients-1
+    active_clients -= 1
     client_id = request.sid
     if client_id in client_preferences:
         del client_preferences[client_id]
@@ -209,3 +208,7 @@ if __name__ == '__main__':
     socketio.start_background_task(target=collect_sensor_data)
     socketio.start_background_task(target=emit_server_time)
     socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+
+
+
+
