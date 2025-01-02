@@ -7,15 +7,15 @@ from flask_mail import Mail
 import sensor_utils
 import email_notifications
 from config import Config
-from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
-from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
-from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
-from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
+# from simulated_sensors.simulated_light_sensor import SimulatedLightSensor
+# from simulated_sensors.simulated_soil_temperature_sensor import SimulatedSoilTemperatureSensor
+# from simulated_sensors.simulated_air_temperature_humidity_sensor import SimulatedAirTemperatureHumidity
+# from simulated_sensors.simulated_soil_humidity_sensor import SimulatedSoilHumiditySensor
 #real sensor files
-# from sensors.light_sensor import LightSensor
-# from sensors.soil_temperature_sensor import SoilTemperatureSensor
-# from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
-# from sensors.soil_humidity_sensor import SoilHumiditySensor
+from sensors.light_sensor import LightSensor
+from sensors.soil_temperature_sensor import SoilTemperatureSensor
+from sensors.air_temperature_humidity_sensor import AirTemperatureHumiditySensor
+from sensors.soil_humidity_sensor import SoilHumiditySensor
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -28,28 +28,28 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 # ----------------------------Objects initialization---------------------------------------------
-simulated_light_sensor = SimulatedLightSensor("Light Sensor 1","BH1750")
-simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
-simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
-simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
-simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
-# light_sensor = LightSensor("Light Sensor 1", "BH1750", 0x23)
-# soil_temperature_sensor = SoilTemperatureSensor("Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
-# soil_temperature_sensor2 = SoilTemperatureSensor("Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
-# air_temperature_humidity_sensor = AirTemperatureHumiditySensor("Air Temperature and Humidity Sensor 1", "DHT11", 13)
-# soil_humidity_sensor = SoilHumiditySensor("Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
+# simulated_light_sensor = SimulatedLightSensor("Light Sensor 1","BH1750")
+# simulated_soil_temperature_sensor = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 1","DS18B20")
+# simulated_soil_temperature_sensor2 = SimulatedSoilTemperatureSensor("Soil Temperature Sensor 2","DS18B20")
+# simulated_air_temperature_humidity_sensor = SimulatedAirTemperatureHumidity("Air Temperature and Humidity Sensor 1", "DHT11")
+# simulated_soil_humidity_sensor = SimulatedSoilHumiditySensor("Soil Humidity Sensor 1","STEMMA Adafruit")
+light_sensor = LightSensor("Light Sensor 1", "BH1750", 0x23)
+soil_temperature_sensor = SoilTemperatureSensor("Soil Temperature Sensor 1", "DS18B20", "28-0623b2e1cc75")
+soil_temperature_sensor2 = SoilTemperatureSensor("Soil Temperature Sensor 2", "DS18B20", "28-307ad4432e60")
+air_temperature_humidity_sensor = AirTemperatureHumiditySensor("Air Temperature and Humidity Sensor 1", "DHT11", 13)
+soil_humidity_sensor = SoilHumiditySensor("Soil Humidity Sensor 1", "STEMMA Adafruit", 0x36)
 # ----------------------------------------------------------------------------------------------
 sensor_objects = [
-    simulated_light_sensor,
-    simulated_soil_temperature_sensor,
-    simulated_soil_temperature_sensor2,
-    simulated_air_temperature_humidity_sensor,
-    simulated_soil_humidity_sensor
-    # light_sensor,
-    # soil_temperature_sensor,
-    # soil_temperature_sensor2,
-    # air_temperature_humidity_sensor,
-    # soil_humidity_sensor
+    # simulated_light_sensor,
+    # simulated_soil_temperature_sensor,
+    # simulated_soil_temperature_sensor2,
+    # simulated_air_temperature_humidity_sensor,
+    # simulated_soil_humidity_sensor
+    light_sensor,
+    soil_temperature_sensor,
+    soil_temperature_sensor2,
+    air_temperature_humidity_sensor,
+    soil_humidity_sensor
 ]
 
 #zmienne globalne
