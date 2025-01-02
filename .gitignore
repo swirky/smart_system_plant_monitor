@@ -2,3 +2,5 @@ venv/
 __pycache__/
 .idea/
 config.py
+htmlRaportTests.py
+test_report.txt
